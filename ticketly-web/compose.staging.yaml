@@ -1,0 +1,19 @@
+name: ticketly-staging
+
+services:
+  web:
+    image: ticketly-web:staging
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    ports:
+      - ${FRONTEND_PORT:-80}:80
+    networks:
+      - ticketly-net
+    restart: unless-stopped
+
+networks:
+  ticketly-net:
+    external: true
