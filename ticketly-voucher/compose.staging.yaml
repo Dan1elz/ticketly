@@ -1,0 +1,17 @@
+name: ticketly-voucher-staging
+
+services:
+  voucher:
+    image: ticketly-voucher:staging
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks:
+      - ticketly-net
+    restart: unless-stopped
+
+networks:
+  ticketly-net:
+    external: true

@@ -1,0 +1,17 @@
+name: ticketly-fiscal-staging
+
+services:
+  fiscal:
+    image: ticketly-fiscal:staging
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    networks:
+      - ticketly-net
+    restart: unless-stopped
+
+networks:
+  ticketly-net:
+    external: true

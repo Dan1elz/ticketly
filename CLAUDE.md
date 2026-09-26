@@ -15,8 +15,8 @@ ticketly/
   ticketly-api       NestJS (TypeScript, --strict, CommonJS) + Postgres — criado
   ticketly-web       React (Vite + shadcn) — criado
   ticketly-infra     RabbitMQ, Redis, MinIO, Mailpit — a fazer
-  ticketly-fiscal    worker Python: gera PDF da NF-e fake — a fazer
-  ticketly-voucher   worker Python: gera ingresso + QR code — a fazer
+  ticketly-fiscal    worker Python (uv, 3.12): gera PDF da NF-e fake — esqueleto criado
+  ticketly-voucher   worker Python (uv, 3.12): gera ingresso + QR code — esqueleto criado
   ticketly-pay       gateway de pagamento fake (simula o Asaas) — a fazer
 ```
 
@@ -71,3 +71,5 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 ## Ambiente
 
 - WSL Ubuntu 20.04 (`~/Projetos/testes/ticketly`). O git padrão do 20.04 é antigo (2.25) — já quebrou o `npx shadcn init --template vite` (`git clone --sparse` falha). Atualizar via `ppa:git-core/ppa` se precisar.
+- Não tem `uv` nem Python novo no host (só o 3.8 do sistema): comandos do uv rodam pela imagem oficial, ex. `docker run --rm -u $(id -u):$(id -g) -v $PWD:/work -w /work -e UV_CACHE_DIR=/tmp/uv-cache ghcr.io/astral-sh/uv:python3.12-bookworm-slim uv add <pacote>`.
+- Composes de development usam todos `name: ticketly-development` (pra agrupar no Docker Desktop). Aviso de "orphan containers" é esperado — nunca usar `--remove-orphans`.

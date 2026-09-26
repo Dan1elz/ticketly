@@ -1,0 +1,21 @@
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# O venv fica FORA de /app: o volume do compose monta o código em /app
+# e esconderia um /app/.venv criado aqui
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Cache layer: instalar dependências (com as de dev) antes do código
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-install-project
+
+# O código vem pelo volume; o watchfiles reinicia o worker a cada alteração em app/
+CMD ["watchfiles", "python -m app.main", "app"]
