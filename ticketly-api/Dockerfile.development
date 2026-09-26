@@ -5,16 +5,22 @@ WORKDIR /app
 ENV NODE_ENV=development \
     PORT=3000
 
+# Roda como o usuário 'node' (uid 1000, o mesmo do seu usuário no WSL).
+# Como root, o dist/ que o --watch gera na pasta montada ficaria com dono root no seu PC
+RUN chown node:node /app
+USER node
+
 # Cache layer: instalar dependências antes de copiar o código
 # Isso faz o primeiro start ser mais rápido
-COPY package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm install
 
 EXPOSE 3000
 
-# TODO: trocar "/" por "/health" quando a rota existir
+# Por enquanto só confere se a porta 3000 está aberta.
+# TODO: trocar por uma rota GET /health quando ela existir
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD nc -z 127.0.0.1 3000 || exit 1
 
 # O código vem pelo volume do compose; o --watch recompila a cada alteração
 CMD ["npm", "run", "start:dev"]

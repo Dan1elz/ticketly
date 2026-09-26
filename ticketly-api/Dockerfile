@@ -35,9 +35,9 @@ USER node
 
 EXPOSE 3000
 
-# Healthcheck (wget já vem no alpine)
-# TODO: trocar "/" por "/health" quando a rota existir
+# Healthcheck (nc já vem no alpine). Por enquanto só confere se a porta 3000 está aberta.
+# TODO: trocar por uma rota GET /health quando ela existir
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+    CMD nc -z 127.0.0.1 3000 || exit 1
 
 CMD ["node", "dist/main"]
