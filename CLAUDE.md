@@ -43,6 +43,8 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 - Dinheiro sempre em centavos (int).
 - Portal admin fica **por último**: começar com seed/Swagger. Quando fizer: rota `/admin` no mesmo front + módulo admin na mesma API com JWT. A tela de pedidos (status de cada etapa) é a mais importante — serve de debug do fluxo distribuído.
 - Não usar `@nestjs/observe` (SaaS pago). Observabilidade depois com OpenTelemetry + Jaeger local.
+- **ORM: MikroORM** (v7, `@mikro-orm/postgresql` + `@mikro-orm/nestjs`). Escolhido pelo Unit of Work (`em.flush()` ≈ `SaveChanges()` do EF) e por ter model de verdade (classe com decorators). Consumers do RabbitMQ precisam de `@CreateRequestContext()`.
+- Padrão Nest da API: módulo por domínio (controller → service → repository), erros com exceções do Nest (`NotFoundException`...) em vez de Result pattern/`@Res()`, validação com `class-validator` nos DTOs + `ValidationPipe` global. O Daniel escreve os módulos; eu explico e faço só o que ele pedir.
 
 ## DER (banco da API)
 
@@ -58,12 +60,11 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 
 ## Dependências da API (instalar por fase)
 
-- Agora: `@nestjs/config`, `class-validator`, `class-transformer`, `@nestjs/swagger` + ORM.
+- Base (instalada): `@nestjs/config`, `class-validator`, `class-transformer`, `@nestjs/swagger`, `@mikro-orm/{core,postgresql,nestjs,migrations,seeder}` + `@mikro-orm/cli` (dev).
 - Reserva: `ioredis`. Filas: `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule`. E-mail: `@aws-sdk/client-s3`, `nodemailer`. Admin: `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt`.
 
 ## Em aberto
 
-- **ORM: Prisma ou MikroORM** (Daniel vem do Entity Framework; MikroORM é o mais parecido — Unit of Work, `em.flush()` ≈ `SaveChanges()`). Se MikroORM: consumers do RabbitMQ precisam de `@CreateRequestContext()`.
 - Onde roda o staging (máquina local ou VPS).
 - Se a NF-e fake deve falhar às vezes (pra exercitar retry).
 

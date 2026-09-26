@@ -2,7 +2,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Argumento de build para VITE_API_URL
-ARG VITE_API_URL=http://ticketly-api:8000
+# É o NAVEGADOR que chama a API, então tem que ser um endereço acessível de fora do Docker
+ARG VITE_API_URL=http://localhost:3000
 ENV VITE_API_URL=$VITE_API_URL
 
 
@@ -32,6 +33,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:80 || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

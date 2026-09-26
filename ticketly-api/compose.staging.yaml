@@ -1,0 +1,48 @@
+name: ticketly-api-staging
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ticketly_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticketly_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ticketly_db}
+      TZ: ${DB_TIMEZONE:-America/Sao_Paulo}
+    # Sem "ports": no staging o banco só é acessível pela rede do Docker
+    volumes:
+      - ticketly_postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticketly-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ticketly_user} -d ${POSTGRES_DB:-ticketly_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ticketly-api:staging
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+    ports:
+      - "${API_PORT:-3000}:3000"
+    networks:
+      - ticketly-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+networks:
+  ticketly-net:
+    external: true
+
+volumes:
+  ticketly_postgres_data:

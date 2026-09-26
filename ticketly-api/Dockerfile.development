@@ -1,0 +1,20 @@
+FROM node:24-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=development \
+    PORT=3000
+
+# Cache layer: instalar dependências antes de copiar o código
+# Isso faz o primeiro start ser mais rápido
+COPY package.json package-lock.json ./
+RUN npm install
+
+EXPOSE 3000
+
+# TODO: trocar "/" por "/health" quando a rota existir
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+
+# O código vem pelo volume do compose; o --watch recompila a cada alteração
+CMD ["npm", "run", "start:dev"]
