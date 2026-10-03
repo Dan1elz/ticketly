@@ -46,6 +46,15 @@ docker compose -f compose.development.yaml up -d
 - API: http://localhost:3000
 - Postgres: `localhost:5433` (usuário, senha e banco no `.env`)
 
+Criar as tabelas e o primeiro admin (com o Postgres de pé):
+
+```bash
+npm run migration:up
+npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD)
+```
+
+- Swagger: http://localhost:3000/docs — faça login em `POST /admin/auth/login` e cole o `accessToken` em **Authorize**.
+
 Sem Docker (precisa do Postgres rodando):
 
 ```bash
@@ -73,6 +82,11 @@ Veja o [.env.example](.env.example). As principais:
 | `npm run lint` | Lint (oxlint) |
 | `npm run format` | Formata com Prettier |
 | `npm test` | Testes unitários (Jest) |
+| `npm run migration:create` | Gera migration com a diferença entre as entidades e o banco (`src/database/migrations`) |
+| `npm run migration:up` | Aplica as migrations pendentes |
+| `npm run migration:down` | Desfaz a última migration |
+| `npm run migration:list` | Lista as migrations aplicadas |
+| `npm run db:seed` | Cria o primeiro admin (não duplica se já existir) |
 
 ## Dependências por fase
 
