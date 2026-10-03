@@ -51,7 +51,8 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 - Portal admin fica **por último**: começar com seed/Swagger. Quando fizer: rota `/admin` no mesmo front + módulo admin na mesma API com JWT. A tela de pedidos (status de cada etapa) é a mais importante — serve de debug do fluxo distribuído.
 - Não usar `@nestjs/observe` (SaaS pago). Observabilidade depois com OpenTelemetry + Jaeger local.
 - **ORM: MikroORM** (v7, `@mikro-orm/postgresql` + `@mikro-orm/nestjs`). Escolhido pelo Unit of Work (`em.flush()` ≈ `SaveChanges()` do EF) e por ter model de verdade (classe com decorators). Consumers do RabbitMQ precisam de `@CreateRequestContext()`.
-- Padrão Nest da API: módulo por domínio (controller → service → repository), erros com exceções do Nest (`NotFoundException`...) em vez de Result pattern/`@Res()`, validação com `class-validator` nos DTOs + `ValidationPipe` global. O Daniel escreve os módulos; eu explico e faço só o que ele pedir.
+- **Auth da API: guard JWT global** (`APP_GUARD` no `AuthModule`): toda rota exige token, exceto as com `@Public()`. Rotas do cliente (catálogo, reserva, checkout, webhook do gateway) PRECISAM de `@Public()`. Sem passport: só `@nestjs/jwt` + guard próprio, que recarrega o admin do banco a cada requisição (desativado perde acesso na hora). Rotas: `POST /admin/auth/login`, `GET /admin/auth/me` (contrato já usado pelo front).
+- Padrão Nest da API: módulo por domínio (controller → service → repository), erros com exceções do Nest (`NotFoundException`...) em vez de Result pattern/`@Res()`, validação com **nestjs-zod** (DTOs = `createZodDto(schema)`, `ZodValidationPipe` próprio em `common/zod` que mantém o erro no formato do Nest, `ZodSerializerInterceptor` + `@ZodResponse` no lugar de mappers — o schema de resposta é o mapper). `nestjs-zod` 5.5 não declara suporte ao Nest 12: instalado via `overrides` no package.json e testado (validação, serialização e Swagger ok). O Daniel escreve os módulos; eu explico e faço só o que ele pedir.
 
 ## DER (banco da API)
 
@@ -67,8 +68,8 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 
 ## Dependências da API (instalar por fase)
 
-- Base (instalada): `@nestjs/config`, `class-validator`, `class-transformer`, `@nestjs/swagger`, `@mikro-orm/{core,postgresql,nestjs,migrations,seeder}` + `@mikro-orm/cli` (dev).
-- Reserva: `ioredis`. Filas: `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule`. E-mail: `@aws-sdk/client-s3`, `nodemailer`. Admin: `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt`.
+- Base (instalada): `@nestjs/config`, `nestjs-zod` + `zod`, `@nestjs/swagger`, `@mikro-orm/{core,postgresql,nestjs,migrations,seeder}` + `@mikro-orm/cli` (dev).
+- Reserva: `ioredis`. Filas: `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule`. E-mail: `@aws-sdk/client-s3`, `nodemailer`. Admin (instalado): `@nestjs/jwt`, `bcrypt` (sem passport).
 
 ## Em aberto
 

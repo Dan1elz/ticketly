@@ -25,7 +25,7 @@ export class Admin extends BaseEntity {
   isActive: Opt<boolean> = true;
 
   @Property({ type: 'datetime', nullable: true })
-  lastLoginAt?: Date | null;
+  lastLoginAt: Opt<Date> | null = null;
 
   update(data: UpdateAdminDto) {
     if (data.name !== undefined) this.name = data.name;

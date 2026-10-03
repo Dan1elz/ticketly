@@ -1,45 +1,19 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Admin } from '../entities/admin.entity';
+import { createZodDto } from 'nestjs-zod';
+import { z } from 'zod';
+import { dateTimeSchema } from '../../common/zod/schemas';
 
-/**
- * O que a API devolve sobre um admin. É o "contrato" com o front:
- * se a entidade mudar, só o fromEntity() muda, a resposta continua igual.
- */
-export class AdminResponseDto {
-  @ApiProperty({ format: 'uuid' })
-  id: string;
+// É o "mapper": o serializer passa a entidade por esse schema e só o que está
+// aqui vai na resposta (password e afins ficam de fora)
+export const adminResponseSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  email: z.string(),
+  isActive: z.boolean(),
+  lastLoginAt: dateTimeSchema.nullable(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+});
 
-  @ApiProperty({ example: 'Daniel Zanni' })
-  name: string;
-
-  @ApiProperty({ example: 'daniel@ticketly.dev' })
-  email: string;
-
-  @ApiProperty({ example: true })
-  isActive: boolean;
-
-  @ApiProperty({ type: Date, nullable: true })
-  lastLoginAt: Date | null;
-
-  @ApiProperty()
-  createdAt: Date;
-
-  @ApiProperty()
-  updatedAt: Date;
-
-  constructor(data: Partial<AdminResponseDto> = {}) {
-    Object.assign(this, data);
-  }
-
-  static fromEntity(admin: Admin): AdminResponseDto {
-    return new AdminResponseDto({
-      id: admin.id,
-      name: admin.name,
-      email: admin.email,
-      isActive: admin.isActive,
-      lastLoginAt: admin.lastLoginAt ?? null,
-      createdAt: admin.createdAt,
-      updatedAt: admin.updatedAt,
-    });
-  }
-}
+export class AdminResponseDto extends createZodDto(adminResponseSchema, {
+  codec: true,
+}) {}

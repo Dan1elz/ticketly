@@ -13,13 +13,14 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiConflictResponse,
-  ApiCreatedResponse,
   ApiNoContentResponse,
   ApiNotFoundResponse,
-  ApiOkResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { ZodResponse } from 'nestjs-zod';
 import { AdminsService } from './admins.service';
 import { AdminListResponseDto } from './dto/admin-list-response.dto';
 import { AdminResponseDto } from './dto/admin-response.dto';
@@ -28,49 +29,39 @@ import { ListAdminsQueryDto } from './dto/list-admins-query.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 
 @ApiTags('admins')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Token ausente, inválido ou expirado' })
 @Controller('admins')
 export class AdminsController {
   constructor(private readonly adminsService: AdminsService) {}
 
   @Post()
-  @ApiCreatedResponse({ type: AdminResponseDto })
+  @ZodResponse({ status: HttpStatus.CREATED, type: AdminResponseDto })
   @ApiBadRequestResponse({ description: 'Dados inválidos' })
   @ApiConflictResponse({ description: 'E-mail já cadastrado' })
-  async create(@Body() dto: CreateAdminDto): Promise<AdminResponseDto> {
-    const admin = await this.adminsService.create(dto);
-    return AdminResponseDto.fromEntity(admin);
+  create(@Body() dto: CreateAdminDto) {
+    return this.adminsService.create(dto);
   }
 
   @Get()
-  @ApiOkResponse({ type: AdminListResponseDto })
-  async findAll(
-    @Query() query: ListAdminsQueryDto,
-  ): Promise<AdminListResponseDto> {
-    const result = await this.adminsService.findAll(query);
-    return AdminListResponseDto.fromPaginated(result);
+  @ZodResponse({ status: HttpStatus.OK, type: AdminListResponseDto })
+  findAll(@Query() query: ListAdminsQueryDto) {
+    return this.adminsService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOkResponse({ type: AdminResponseDto })
+  @ZodResponse({ status: HttpStatus.OK, type: AdminResponseDto })
   @ApiNotFoundResponse({ description: 'Admin não encontrado' })
-  async findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-  ): Promise<AdminResponseDto> {
-    const admin = await this.adminsService.findOne(id);
-    return AdminResponseDto.fromEntity(admin);
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminsService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOkResponse({ type: AdminResponseDto })
+  @ZodResponse({ status: HttpStatus.OK, type: AdminResponseDto })
   @ApiBadRequestResponse({ description: 'Dados inválidos' })
   @ApiNotFoundResponse({ description: 'Admin não encontrado' })
-  @ApiConflictResponse({ description: 'E-mail já cadastrado' })
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateAdminDto,
-  ): Promise<AdminResponseDto> {
-    const admin = await this.adminsService.update(id, dto);
-    return AdminResponseDto.fromEntity(admin);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateAdminDto) {
+    return this.adminsService.update(id, dto);
   }
 
   @Delete(':id')
