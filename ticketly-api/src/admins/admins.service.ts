@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   UniqueConstraintViolationException,
   type FilterQuery,
@@ -10,6 +6,10 @@ import {
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 import type { Paginated } from '../common/repositories/base.repository';
+import {
+  AdminEmailAlreadyExistsException,
+  AdminNotFoundException,
+} from './admins.exceptions';
 import { AdminRepository } from './admins.repository';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { ListAdminsQueryDto } from './dto/list-admins-query.dto';
@@ -28,7 +28,7 @@ export class AdminsService {
       .find({ email: dto.email })
       .then((existingAdmin) => {
         if (existingAdmin.length > 0) {
-          throw new ConflictException('E-mail já cadastrado');
+          throw new AdminEmailAlreadyExistsException();
         }
       });
 
@@ -48,7 +48,7 @@ export class AdminsService {
     const admin = await this.adminRepository.findById(id);
 
     if (!admin) {
-      throw new NotFoundException('Admin não encontrado');
+      throw new AdminNotFoundException();
     }
 
     return admin;
@@ -78,7 +78,7 @@ export class AdminsService {
       await this.adminRepository.saveChanges();
     } catch (error) {
       if (error instanceof UniqueConstraintViolationException) {
-        throw new ConflictException('E-mail já cadastrado');
+        throw new AdminEmailAlreadyExistsException();
       }
       throw error;
     }

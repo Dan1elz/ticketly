@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { compare } from 'bcrypt';
 import { AdminRepository } from '../admins/admins.repository';
 import { Admin } from '../admins/entities/admin.entity';
+import { InvalidCredentialsException } from './auth.exceptions';
 import { LoginDto } from './dto/login.dto';
 import type { JwtPayload } from './interfaces/authenticated-request.interface';
 
@@ -31,7 +32,7 @@ export class AuthService {
     );
 
     if (!admin || !passwordMatches || !admin.isActive) {
-      throw new UnauthorizedException('E-mail ou senha inválidos');
+      throw new InvalidCredentialsException();
     }
 
     admin.lastLoginAt = new Date();

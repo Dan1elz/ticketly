@@ -1,6 +1,5 @@
 import {
   Injectable,
-  UnauthorizedException,
   type CanActivate,
   type ExecutionContext,
 } from '@nestjs/common';
@@ -9,6 +8,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { AdminRepository } from '../../admins/admins.repository';
 import { Admin } from '../../admins/entities/admin.entity';
+import {
+  InvalidSessionException,
+  InvalidTokenException,
+  MissingTokenException,
+} from '../auth.exceptions';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type {
   AuthenticatedRequest,
@@ -36,7 +40,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractToken(request);
 
     if (!token) {
-      throw new UnauthorizedException('Token não informado');
+      throw new MissingTokenException();
     }
 
     let payload: JwtPayload;
@@ -44,13 +48,13 @@ export class JwtAuthGuard implements CanActivate {
     try {
       payload = await this.jwtService.verifyAsync<JwtPayload>(token);
     } catch {
-      throw new UnauthorizedException('Token inválido ou expirado');
+      throw new InvalidTokenException();
     }
 
     const admin = await this.adminRepository.findById(payload.sub);
 
     if (!admin || !admin.isActive) {
-      throw new UnauthorizedException('Sessão inválida');
+      throw new InvalidSessionException();
     }
 
     request.admin = admin;
