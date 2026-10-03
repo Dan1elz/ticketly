@@ -24,6 +24,13 @@ Padrão Docker de cada projeto: `Dockerfile` + `Dockerfile.Development` (se nece
 
 Workers Python: o Daniel quer que sejam "full IA" — pode escrever por ele. A API Nest ele quer aprender, então explique enquanto faz.
 
+## Documentação
+
+- `README.md` (raiz): visão geral, repositórios, como rodar, roadmap.
+- `docs/arquitetura.md`: fluxo, decisões, DER.
+- `docs/eventos.md`: **contrato das mensagens** (envelope, filas, payloads) — fonte da verdade; mudou evento, atualiza lá primeiro.
+- `README.md` em cada repositório. Ao criar `ticketly-infra`/`ticketly-pay`, criar o README deles no mesmo padrão e atualizar a tabela da raiz.
+
 ## Fluxo
 
 1. Cliente escolhe assento **sem login** → `POST /reservations` → bloqueio no Redis por 10 min (`SET NX EX`) + pedido `RESERVED` com `reservation_code` aleatório (quem tem o código é o dono da reserva).
