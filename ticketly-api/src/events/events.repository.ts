@@ -13,8 +13,8 @@ export interface SearchEventsParams extends PaginationParams {
 }
 
 export class EventRepository extends BaseRepository<Event> {
-  findByIdWithArtist(id: string): Promise<Event | null> {
-    return this.findOne({ id }, { populate: ['artist'] });
+  findByIdWithLineup(id: string): Promise<Event | null> {
+    return this.findOne({ id }, { populate: ['lineup.artist'] });
   }
 
   async search({
@@ -32,7 +32,7 @@ export class EventRepository extends BaseRepository<Event> {
     }
 
     if (artistId) {
-      where.artist = artistId;
+      where.lineup = { artist: artistId };
     }
 
     if (status) {
@@ -40,7 +40,7 @@ export class EventRepository extends BaseRepository<Event> {
     }
 
     const [items, total] = await this.findAndCount(where, {
-      populate: ['artist'],
+      populate: ['lineup.artist'],
       orderBy: { startsAt: 'asc', id: 'asc' },
       limit: perPage,
       offset: (page - 1) * perPage,

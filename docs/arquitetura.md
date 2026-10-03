@@ -77,6 +77,8 @@ RESERVED ──► PAID ──► COMPLETED
 
 ```mermaid
 erDiagram
+    events ||--o{ event_lineup : tem
+    artists ||--o{ event_lineup : "toca em"
     events ||--o{ sectors : tem
     sectors ||--o{ seats : tem
     orders ||--o{ order_items : tem
@@ -90,6 +92,27 @@ erDiagram
         text venue
         timestamp starts_at
         enum status "DRAFT | PUBLISHED"
+    }
+    artists {
+        uuid id PK
+        text name
+        text legal_name
+        text genre
+        text bio
+        text image_url
+        jsonb social_links
+        bool is_active
+    }
+    event_lineup {
+        uuid id PK
+        uuid event_id FK
+        uuid artist_id FK
+        text stage
+        enum performance_type "HEADLINER | SUPPORT | DJ"
+        timestamp start_time
+        timestamp end_time
+        int display_order
+        enum status "CONFIRMED | CANCELLED"
     }
     sectors {
         uuid id PK
@@ -148,6 +171,7 @@ Regras importantes:
 
 - `order_items.seat_id` é **único**: o banco impede que o mesmo assento entre em dois pedidos, mesmo se o lock do Redis falhar. Quando uma reserva expira, os itens dela são apagados e o assento fica livre.
 - `documents` é único por `(order_id, type)`: um pedido tem no máximo uma NF-e e um ingresso.
+- `event_lineup` é único por `(event_id, artist_id)`: o mesmo artista não entra duas vezes no lineup de um evento. Apagar o evento apaga o lineup (`ON DELETE CASCADE`); apagar um artista que está em algum lineup é recusado (`ON DELETE RESTRICT`, a API devolve 409).
 - `outbox` não se relaciona com nada: é a caixa de saída de mensagens para o RabbitMQ.
 - Depois: `admin_users` para o login do portal admin.
 

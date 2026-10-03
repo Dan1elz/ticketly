@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { ForeignKeyConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 import type { Paginated } from '../common/repositories/base.repository';
-import { ArtistNotFoundException } from './artists.exceptions';
+import {
+  ArtistInUseException,
+  ArtistNotFoundException,
+} from './artists.exceptions';
 import { ArtistRepository } from './artists.repository';
 import { CreateArtistDto } from './dto/create-artist.dto';
 import { ListArtistsQueryDto } from './dto/list-artists-query.dto';
@@ -29,6 +33,12 @@ export class ArtistsService {
     return this.artistRepository.search(query);
   }
 
+  findByIds(ids: string[]): Promise<Artist[]> {
+    if (ids.length === 0) return Promise.resolve([]);
+
+    return this.artistRepository.find({ id: { $in: ids } });
+  }
+
   async findOne(id: string): Promise<Artist> {
     const artist = await this.artistRepository.findById(id);
 
@@ -53,6 +63,16 @@ export class ArtistsService {
     const artist = await this.findOne(id);
 
     this.artistRepository.remove(artist);
-    await this.artistRepository.saveChanges();
+
+    // event_lineup.artist_id é ON DELETE RESTRICT: o banco recusa apagar
+    // artista que ainda está em algum evento
+    try {
+      await this.artistRepository.saveChanges();
+    } catch (error) {
+      if (error instanceof ForeignKeyConstraintViolationException) {
+        throw new ArtistInUseException();
+      }
+      throw error;
+    }
   }
 }

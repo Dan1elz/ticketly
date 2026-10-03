@@ -15,7 +15,10 @@ import { ApiBearerAuth, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import { AUTH_GUARD_ERRORS } from '../auth/auth.exceptions';
 import { ApiErrors } from '../common/swagger/api-errors.decorator';
-import { ArtistNotFoundException } from './artists.exceptions';
+import {
+  ArtistInUseException,
+  ArtistNotFoundException,
+} from './artists.exceptions';
 import { ArtistsService } from './artists.service';
 import { ArtistListResponseDto } from './dto/artist-list-response.dto';
 import { ArtistResponseDto } from './dto/artist-response.dto';
@@ -61,7 +64,11 @@ export class ArtistsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
-  @ApiErrors(HttpStatus.BAD_REQUEST, ArtistNotFoundException)
+  @ApiErrors(
+    HttpStatus.BAD_REQUEST,
+    ArtistNotFoundException,
+    ArtistInUseException,
+  )
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.artistsService.remove(id);
   }
