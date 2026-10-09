@@ -10,11 +10,15 @@ import { ApiService } from "./api.service"
  * CRUD genérico de um recurso. Cada service específico estende esse:
  *
  * @example
- * class EventService extends BaseService<IEvent> {
- *   constructor() { super("admin/events") }
+ * class EventService extends BaseService<IEvent, IEventPayload> {
+ *   constructor() { super("events") }
  * }
  */
-export class BaseService<T> implements IBaseService<T> {
+export class BaseService<
+  T,
+  TCreate = Partial<T>,
+  TUpdate = Partial<TCreate>,
+> implements IBaseService<T, TCreate, TUpdate> {
   protected endpoint: string
   protected apiService: ApiService
 
@@ -53,12 +57,12 @@ export class BaseService<T> implements IBaseService<T> {
     return response.data
   }
 
-  async create(data: Partial<T>, token?: string): Promise<T> {
+  async create(data: TCreate, token?: string): Promise<T> {
     const response = await this.apiService.post<T>(this.endpoint, data, token)
     return response.data
   }
 
-  async update(id: string, data: Partial<T>, token?: string): Promise<T> {
+  async update(id: string, data: TUpdate, token?: string): Promise<T> {
     const response = await this.apiService.patch<T>(
       `${this.endpoint}/${id}`,
       data,

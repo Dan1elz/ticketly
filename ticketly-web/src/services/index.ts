@@ -1,3 +1,6 @@
 export { ApiService, ApiError, setUnauthorizedHandler } from "./api.service"
 export { BaseService } from "./base.service"
 export { authService } from "./auth.service"
+export { artistService } from "./artist.service"
+export { eventService } from "./event.service"
+export { uploadService } from "./upload.service"

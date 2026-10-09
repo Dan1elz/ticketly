@@ -22,12 +22,13 @@ ticketly/
 
 Padrão Docker de cada projeto: `Dockerfile` + `Dockerfile.Development` (se necessário), `compose.development.yaml` e `compose.staging.yaml` na pasta de cada um (cada projeto se auto-gerencia). Composes separados se enxergam por uma rede Docker externa `ticketly-net`.
 
-Workers Python: o Daniel quer que sejam "full IA" — pode escrever por ele. A API Nest ele quer aprender, então explique enquanto faz.
+Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, completo e caprichado (front sempre com componentes shadcn oficiais — nada de elemento nativo tipo `<datalist>`). No front, página/componente nunca chama service: Provider (estado + ações) → Context → hook `useX`, mesmo padrão do `aura-front`. O foco do projeto é backend: a API Nest ele quer aprender, então explique enquanto faz.
 
 ## Documentação
 
 - `README.md` (raiz): visão geral, repositórios, como rodar, roadmap.
 - `docs/arquitetura.md`: fluxo, decisões, DER.
+- `docs/pendencias-api.md`: o que o front já usa e a API ainda não implementou (upload de imagem no MinIO, `imageKey` em artistas...). Implementou, tira de lá.
 - `docs/eventos.md`: **contrato das mensagens** (envelope, filas, payloads) — fonte da verdade; mudou evento, atualiza lá primeiro.
 - `README.md` em cada repositório. Ao criar `ticketly-infra`/`ticketly-pay`, criar o README deles no mesmo padrão e atualizar a tabela da raiz.
 
