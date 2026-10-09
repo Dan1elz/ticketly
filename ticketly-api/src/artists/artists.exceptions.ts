@@ -6,6 +6,12 @@ export class ArtistNotFoundException extends NotFoundException {
   }
 }
 
+export class ArtistInactiveException extends ConflictException {
+  constructor() {
+    super('Artista está desativado');
+  }
+}
+
 export class ArtistInUseException extends ConflictException {
   constructor() {
     super('Artista está no lineup de algum evento');

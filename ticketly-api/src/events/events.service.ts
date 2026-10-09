@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
-import { ArtistNotFoundException } from '../artists/artists.exceptions';
+import {
+  ArtistInactiveException,
+  ArtistNotFoundException,
+} from '../artists/artists.exceptions';
 import { ArtistsService } from '../artists/artists.service';
 import { Artist } from '../artists/entities/artist.entity';
 import type { Paginated } from '../common/repositories/base.repository';
@@ -50,8 +53,11 @@ export class EventsService {
 
   async update(id: string, dto: UpdateEventDto): Promise<Event> {
     const event = await this.findOne(id);
+    const currentArtistIds = new Set(
+      event.lineup.getItems().map((item) => item.artist.id),
+    );
     const lineup = dto.lineup
-      ? await this.resolveLineup(dto.lineup)
+      ? await this.resolveLineup(dto.lineup, currentArtistIds)
       : undefined;
 
     event.update(dto, lineup);
@@ -68,16 +74,16 @@ export class EventsService {
     await this.eventRepository.saveChanges();
   }
 
-  // Cada item traz um artistId (busca no banco) ou um artist (cria um novo)
-  private async resolveLineup(items: LineupItemDto[]): Promise<LineupEntry[]> {
+  // Cada item traz um artistId (busca no banco) ou um artist (cria um novo).
+  // Artista desativado não entra em evento, mas continua nos que já estava
+  private async resolveLineup(
+    items: LineupItemDto[],
+    currentArtistIds = new Set<string>(),
+  ): Promise<LineupEntry[]> {
     const existing = await this.artistsService.findByIds(
       items.flatMap((item) => item.artistId ?? []),
     );
-    const artistsById = new Map(
-      existing
-        .filter((artist) => artist.isActive == true)
-        .map((artist) => [artist.id, artist]),
-    );
+    const artistsById = new Map(existing.map((artist) => [artist.id, artist]));
 
     return items.map(({ artistId, artist: newArtist, ...data }) => {
       const artist = artistId
@@ -86,6 +92,10 @@ export class EventsService {
 
       if (!artist) {
         throw new ArtistNotFoundException();
+      }
+
+      if (!artist.isActive && !currentArtistIds.has(artist.id)) {
+        throw new ArtistInactiveException();
       }
 
       return { ...data, artist };

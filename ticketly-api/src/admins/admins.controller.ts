@@ -16,6 +16,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { AUTH_GUARD_ERRORS } from '../auth/auth.exceptions';
 import { ApiErrors } from '../common/swagger/api-errors.decorator';
 import {
+  AdminCannotDeleteOwnAccountException,
   AdminEmailAlreadyExistsException,
   AdminNotFoundException,
 } from './admins.exceptions';
@@ -66,7 +67,11 @@ export class AdminsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
-  @ApiErrors(HttpStatus.BAD_REQUEST, AdminNotFoundException)
+  @ApiErrors(
+    HttpStatus.BAD_REQUEST,
+    AdminNotFoundException,
+    AdminCannotDeleteOwnAccountException,
+  )
   remove(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentAdmin() currentAdmin: Admin,
