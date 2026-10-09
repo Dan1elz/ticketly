@@ -7,6 +7,7 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 
 import type { Paginated } from '../common/repositories/base.repository';
 import {
+  AdminCannotDeleteOwnAccountException,
   AdminEmailAlreadyExistsException,
   AdminNotFoundException,
 } from './admins.exceptions';
@@ -64,8 +65,12 @@ export class AdminsService {
     return admin;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, userId: string): Promise<void> {
     const admin = await this.findOne(id);
+
+    if (admin.id === userId) {
+      throw new AdminCannotDeleteOwnAccountException();
+    }
 
     this.adminRepository.remove(admin);
     await this.saveChanges();

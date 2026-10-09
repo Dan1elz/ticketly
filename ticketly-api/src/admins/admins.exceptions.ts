@@ -11,3 +11,9 @@ export class AdminEmailAlreadyExistsException extends ConflictException {
     super('E-mail já cadastrado');
   }
 }
+
+export class AdminCannotDeleteOwnAccountException extends ConflictException {
+  constructor() {
+    super('Você não pode deletar sua própria conta');
+  }
+}

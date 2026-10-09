@@ -25,6 +25,8 @@ import { AdminResponseDto } from './dto/admin-response.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { ListAdminsQueryDto } from './dto/list-admins-query.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { CurrentAdmin } from '../auth/decorators/current-admin.decorator';
+import { Admin } from './entities/admin.entity';
 
 @ApiTags('admins')
 @ApiBearerAuth()
@@ -65,7 +67,10 @@ export class AdminsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
   @ApiErrors(HttpStatus.BAD_REQUEST, AdminNotFoundException)
-  remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-    return this.adminsService.remove(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() currentAdmin: Admin,
+  ): Promise<void> {
+    return this.adminsService.remove(id, currentAdmin.id);
   }
 }

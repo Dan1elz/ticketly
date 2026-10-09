@@ -23,6 +23,7 @@ import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EventNotFoundException } from './events.exceptions';
 import { EventsService } from './events.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('events')
 @ApiBearerAuth()
@@ -40,6 +41,7 @@ export class EventsController {
 
   @Get()
   @ZodResponse({ status: HttpStatus.OK, type: EventListResponseDto })
+  @Public()
   @ApiErrors(HttpStatus.BAD_REQUEST)
   findAll(@Query() query: ListEventsQueryDto) {
     return this.eventsService.findAll(query);
@@ -47,6 +49,7 @@ export class EventsController {
 
   @Get(':id')
   @ZodResponse({ status: HttpStatus.OK, type: EventResponseDto })
+  @Public()
   @ApiErrors(HttpStatus.BAD_REQUEST, EventNotFoundException)
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.findOne(id);

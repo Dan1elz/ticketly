@@ -40,4 +40,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD nc -z 127.0.0.1 3000 || exit 1
 
-CMD ["node", "dist/main"]
+# Aplica as migrations (e cria o primeiro admin, se não existir) antes de subir a API.
+# O exec faz a API virar o processo principal e receber o sinal de parada do Docker
+CMD ["sh", "-c", "node dist/database/migrate && exec node dist/main"]

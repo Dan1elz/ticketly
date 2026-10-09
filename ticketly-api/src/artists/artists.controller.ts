@@ -25,6 +25,7 @@ import { ArtistResponseDto } from './dto/artist-response.dto';
 import { CreateArtistDto } from './dto/create-artist.dto';
 import { ListArtistsQueryDto } from './dto/list-artists-query.dto';
 import { UpdateArtistDto } from './dto/update-artist.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('artists')
 @ApiBearerAuth()
@@ -43,6 +44,7 @@ export class ArtistsController {
   @Get()
   @ZodResponse({ status: HttpStatus.OK, type: ArtistListResponseDto })
   @ApiErrors(HttpStatus.BAD_REQUEST)
+  @Public()
   findAll(@Query() query: ListArtistsQueryDto) {
     return this.artistsService.findAll(query);
   }
@@ -50,6 +52,7 @@ export class ArtistsController {
   @Get(':id')
   @ZodResponse({ status: HttpStatus.OK, type: ArtistResponseDto })
   @ApiErrors(HttpStatus.BAD_REQUEST, ArtistNotFoundException)
+  @Public()
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.artistsService.findOne(id);
   }

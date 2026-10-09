@@ -13,6 +13,13 @@ export interface SearchEventsParams extends PaginationParams {
 }
 
 export class EventRepository extends BaseRepository<Event> {
+  /**
+   * Pega um evento pelo seu ID e popula as relações de lineup e artist.
+   * Lineup é a relação entre o evento e os artistas que irão se apresentar nele.
+   *
+   * @param id - The ID of the event to find.
+   * @returns A promise that resolves to the event with its lineup and artist relations populated, or null if not found.
+   */
   findByIdWithLineup(id: string): Promise<Event | null> {
     return this.findOne({ id }, { populate: ['lineup.artist'] });
   }

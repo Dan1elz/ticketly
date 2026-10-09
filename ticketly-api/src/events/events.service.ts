@@ -73,7 +73,11 @@ export class EventsService {
     const existing = await this.artistsService.findByIds(
       items.flatMap((item) => item.artistId ?? []),
     );
-    const artistsById = new Map(existing.map((artist) => [artist.id, artist]));
+    const artistsById = new Map(
+      existing
+        .filter((artist) => artist.isActive == true)
+        .map((artist) => [artist.id, artist]),
+    );
 
     return items.map(({ artistId, artist: newArtist, ...data }) => {
       const artist = artistId
