@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # Redis: idempotência (processed:{messageId})
     redis_url: str = "redis://redis:6379/0"
 
-    # MinIO (S3)
-    s3_endpoint_url: str = "http://minio:9000"
+    # Storage (S3)
+    s3_endpoint_url: str = "http://storage:9000"
     s3_access_key: str = "ticketly"
     s3_secret_key: str = "ticketly-secret"
     s3_bucket: str = "ticketly-documents"
