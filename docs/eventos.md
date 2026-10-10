@@ -17,10 +17,21 @@ Todos os serviços trocam mensagens pelo RabbitMQ usando o mesmo formato. Este a
 | `api.invoice-generated` | `invoice.generated` | ticketly-api |
 | `api.ticket-generated` | `ticket.generated` | ticketly-api |
 
-Cada fila tem duas filas auxiliares:
+Cada fila tem filas auxiliares (o porquê está em [decisoes.md](decisoes.md)):
 
-- `<fila>.retry` — espera alguns segundos e devolve a mensagem para a fila original (nova tentativa).
-- `<fila>.dlq` — depois de N tentativas a mensagem vem parar aqui para análise manual.
+- `<fila>.retry.5s`, `<fila>.retry.30s`, `<fila>.retry.2m` — filas de espera, sem consumidor. Cada uma tem TTL fixo e, quando ele expira, devolve a mensagem **direto para `<fila>`** pela exchange padrão (nunca pela `ticketly.events`, senão os outros consumidores recebem de novo).
+- `<fila>.dlq` — depois da 3ª tentativa a mensagem vem parar aqui para análise manual.
+
+### Header `retry-attempt`
+
+Número da tentativa (ausente = 0). Fica no header AMQP, não no envelope: o envelope é o fato e é igual para todo consumidor; a tentativa é de cada consumidor. O `messageId` não muda entre tentativas.
+
+| `retry-attempt` ao falhar | Vai para |
+|---|---|
+| 0 | `<fila>.retry.5s` (com `retry-attempt: 1`) |
+| 1 | `<fila>.retry.30s` (com `retry-attempt: 2`) |
+| 2 | `<fila>.retry.2m` (com `retry-attempt: 3`) |
+| 3 | `<fila>.dlq` |
 
 ## Envelope
 
@@ -105,10 +116,17 @@ Publicado pelo **ticketly-voucher** depois de salvar o PDF do ingresso no storag
 }
 ```
 
+## Regras para quem publica
+
+1. **Publisher confirms**: só considere publicado depois que o RabbitMQ confirmar. Na API, só então a outbox grava `published_at`.
+2. **Mensagem persistente** (`deliveryMode: 2`).
+
 ## Regras para quem consome
 
 1. **Ack manual**: só confirme a mensagem depois de terminar o trabalho.
-2. **Idempotência**: antes de processar, verifique `processed:{messageId}` no Redis. Se já existe, só confirme e ignore.
-3. **Falha temporária** (storage fora, timeout): mande para a fila de retry.
-4. **Falha definitiva** (payload inválido): mande direto para a DLQ, não adianta tentar de novo.
-5. **Valide o payload** (pydantic no Python, zod no Nest) antes de usar.
+2. **Idempotência**: antes de processar, verifique `processed:{messageId}` no Redis. Se já existe, só confirme e ignore. Grave a chave só **no fim** (depois de publicar o resultado, antes do ack), com expiração de 24h.
+3. **Efeitos repetíveis**: processar a mesma mensagem 2x tem que dar o mesmo resultado (mesma chave de arquivo, mesmo número de NF-e). A checagem no Redis é só atalho; a garantia é esta.
+4. **Falha temporária** (storage fora, timeout): publique a cópia no degrau de retry indicado pelo `retry-attempt` e confirme a original.
+5. **Falha definitiva** (payload inválido): mande direto para a DLQ, não adianta tentar de novo.
+6. **Prefetch**: 1 nos workers Python, 10 nos consumers da API.
+7. **Valide o payload** (pydantic no Python, zod no Nest) antes de usar.
