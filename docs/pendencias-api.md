@@ -2,26 +2,28 @@
 
 O que o front (`ticketly-web`) já usa e a API ainda não tem. O front foi escrito **como se isso já existisse**; até a API implementar, essas partes respondem erro.
 
-## 1. Upload de imagem (MinIO)
+## 1. Upload de imagem (storage S3)
 
-A foto do artista deixou de ser uma URL digitada: o admin escolhe um arquivo, o front sobe na hora e guarda só a **chave** do arquivo no MinIO.
+A foto do artista deixou de ser uma URL digitada: o admin escolhe um arquivo, o front sobe na hora e guarda só a **chave** do arquivo no storage.
 
-### Infra (`ticketly-infra`)
+### Infra (`ticketly-infra`) — ✅ pronta
 
-- Container do MinIO na rede `ticketly-net` (API S3 na `9000`, console na `9001`).
-- Bucket `ticketly`, com **leitura pública** só para o prefixo `artists/*` (a loja mostra a foto sem login). Escrita só pela API.
+- Storage S3 (Silo, fork do MinIO) no serviço `storage` da rede `ticketly-net` (API S3 na `9000`, painel na `9001`).
+- Bucket `ticketly-public`, com **leitura pública** só no prefixo `artists/` (a loja mostra a foto sem login). Escrita só com credencial.
+- Regra de lifecycle no `ticketly-public`: tudo em `tmp/` é apagado depois de 1 dia.
 
 ### Variáveis de ambiente da API
 
 | Variável | Exemplo | Para quê |
 |---|---|---|
-| `S3_ENDPOINT` | `http://minio:9000` | Onde a API envia os arquivos (dentro do Docker) |
-| `S3_PUBLIC_URL` | `http://localhost:9000/ticketly` | Base da URL que o **navegador** usa pra abrir a imagem |
-| `S3_BUCKET` | `ticketly` | |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | | Credenciais do MinIO |
-| `S3_REGION` | `us-east-1` | O SDK exige, o MinIO ignora |
+| `S3_ENDPOINT_URL` | `http://storage:9000` | Onde a API envia os arquivos (dentro do Docker). Mesmo nome usado nos workers |
+| `S3_PUBLIC_URL` | `http://localhost:9000` | Endereço que o **navegador** enxerga: monta a URL das fotos e assina as URLs temporárias |
+| `S3_BUCKET_PUBLIC` | `ticketly-public` | Fotos dos artistas |
+| `S3_BUCKET_DOCUMENTS` | `ticketly-documents` | PDFs (NF-e e ingresso), privado |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `ticketly` / `ticketly-secret` | Credenciais do storage (as mesmas do `.env` da infra) |
+| `S3_REGION` | `us-east-1` | O SDK exige, o storage ignora |
 
-Dependência: `@aws-sdk/client-s3` (com `forcePathStyle: true` para o MinIO).
+Dependência: `@aws-sdk/client-s3` (com `forcePathStyle: true`, senão o SDK tenta `ticketly-public.storage:9000` em vez de `storage:9000/ticketly-public`). Para URLs assinadas, `@aws-sdk/s3-request-presigner` com um **segundo cliente** configurado no `S3_PUBLIC_URL` (a assinatura inclui o endereço; não dá pra trocar `storage` por `localhost` depois de assinar).
 
 ### `POST /uploads/images` (protegida — admin logado)
 
@@ -37,7 +39,7 @@ Resposta `201`:
 ```json
 {
   "key": "artists/0b9c1e7a-5f7e-4a51-9a51-3c1f2d9e8b10.webp",
-  "url": "http://localhost:9000/ticketly/artists/0b9c1e7a-5f7e-4a51-9a51-3c1f2d9e8b10.webp"
+  "url": "http://localhost:9000/ticketly-public/artists/0b9c1e7a-5f7e-4a51-9a51-3c1f2d9e8b10.webp"
 }
 ```
 
@@ -48,14 +50,14 @@ Resposta `201`:
 
 - Coluna `image_url` → `image_key` (migration nova).
 - `POST /artists` e `PATCH /artists/:id` recebem **`imageKey`** no lugar de `imageUrl`. Validar que começa com `artists/`.
-- A resposta devolve os dois: `imageKey` e `imageUrl` (montada pela API: `S3_PUBLIC_URL + "/" + imageKey`). O banco guarda só a chave — se o endereço do MinIO mudar, nenhum dado precisa ser migrado.
+- A resposta devolve os dois: `imageKey` e `imageUrl` (montada pela API: `S3_PUBLIC_URL + "/" + S3_BUCKET_PUBLIC + "/" + imageKey`). O banco guarda só a chave — se o endereço do storage mudar, nenhum dado precisa ser migrado.
 - `POST/PATCH /events` com artista novo no lineup (`lineup[].artist`): mesmo campo `imageKey`.
 - No lineup da resposta de eventos, `artist.imageUrl` continua existindo (o front usa nos avatares).
 
 ### Depois (não bloqueia o front)
 
 - Ao trocar a foto, apagar o arquivo antigo do bucket.
-- Arquivos órfãos (upload feito e formulário cancelado): job que apaga o que está no bucket e não está em nenhum artista há mais de 1 dia.
+- Arquivos órfãos (upload feito e formulário cancelado): a infra já apaga sozinha o que fica em `tmp/` por mais de 1 dia. Pra aproveitar, o upload passa a salvar em `tmp/<uuid>.<ext>` e o `POST/PATCH /artists` move o arquivo pra `artists/` ao salvar (copiar + apagar o original). Isso muda o contrato: o `imageKey` enviado pelo front começa com `tmp/` — combinar com o front antes.
 
 ## 2. Outras observações
 

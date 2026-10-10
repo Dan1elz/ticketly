@@ -14,7 +14,7 @@ Projeto de estudo do Daniel para aprender sistemas distribuídos: app de compra 
 ticketly/
   ticketly-api       NestJS (TypeScript, --strict, CommonJS) + Postgres — criado
   ticketly-web       React (Vite + shadcn) — criado
-  ticketly-infra     RabbitMQ, Redis, MinIO, Mailpit — a fazer
+  ticketly-infra     Storage S3 (Silo) — pronto; RabbitMQ, Redis, Mailpit — a fazer
   ticketly-fiscal    worker Python (uv, 3.12): gera PDF da NF-e fake — esqueleto criado
   ticketly-voucher   worker Python (uv, 3.12): gera ingresso + QR code — esqueleto criado
   ticketly-pay       gateway de pagamento fake (simula o Asaas) — a fazer
@@ -28,16 +28,17 @@ Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, 
 
 - `README.md` (raiz): visão geral, repositórios, como rodar, roadmap.
 - `docs/arquitetura.md`: fluxo, decisões, DER.
-- `docs/pendencias-api.md`: o que o front já usa e a API ainda não implementou (upload de imagem no MinIO, `imageKey` em artistas...). Implementou, tira de lá.
+- `docs/pendencias-api.md`: o que o front já usa e a API ainda não implementou (upload de imagem no storage, `imageKey` em artistas...). Implementou, tira de lá.
+- `docs/decisoes.md`: decisões de mensageria/workers (decisão + porquê + custo), fechadas uma a uma com o Daniel.
 - `docs/eventos.md`: **contrato das mensagens** (envelope, filas, payloads) — fonte da verdade; mudou evento, atualiza lá primeiro.
-- `README.md` em cada repositório. Ao criar `ticketly-infra`/`ticketly-pay`, criar o README deles no mesmo padrão e atualizar a tabela da raiz.
+- `README.md` em cada repositório. Ao criar `ticketly-pay`, criar o README dele no mesmo padrão e atualizar a tabela da raiz. Ao adicionar serviço na infra (RabbitMQ, Redis, Mailpit), atualizar `ticketly-infra/README.md`.
 
 ## Fluxo
 
 1. Cliente escolhe assento **sem login** → `POST /reservations` → bloqueio no Redis por 10 min (`SET NX EX`) + pedido `RESERVED` com `reservation_code` aleatório (quem tem o código é o dono da reserva).
 2. Checkout: nome, e-mail, CPF + reservation_code → API cria cobrança no gateway fake.
 3. Gateway fake chama webhook da API (aprovado/recusado, com delay aleatório) → pedido `PAID` + evento gravado na tabela `outbox` na mesma transação → job publica `order.paid` no RabbitMQ.
-4. Exchange topic, **uma fila por worker** → fiscal e voucher processam em paralelo, sobem PDF no MinIO, publicam `invoice.generated` / `ticket.generated`.
+4. Exchange topic, **uma fila por worker** → fiscal e voucher processam em paralelo, sobem PDF no storage, publicam `invoice.generated` / `ticket.generated`.
 5. API consome os dois, grava em `documents`, e quando os dois existem (UPDATE condicional atômico, pra não mandar 2x) envia e-mail com anexos pro Mailpit → `COMPLETED`.
 
 Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED`.
@@ -46,7 +47,10 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 
 - Postgres **só da API**. Workers não têm banco nem acessam o da API — tudo que precisam vem na mensagem. Idempotência dos workers via Redis (`processed:{messageId}`).
 - Mensagens com envelope JSON próprio (`messageId`, `type`, `version`, `correlationId`, `occurredAt`, `payload`). **Não** usar o transport RabbitMQ nativo do `@nestjs/microservices` (formato próprio, ruim de interoperar com Python) — usar `@golevelup/nestjs-rabbitmq`.
-- PDFs no MinIO (S3), não em pasta compartilhada.
+- Arquivos num storage S3, não em pasta compartilhada. **Produto: Silo** (`pgsty/silo` + `pgsty/mc`, fork comunitário do MinIO — o MinIO parou de publicar imagens em out/2025 e foi arquivado em abr/2026; `minio/minio` e `quay.io/minio/*` não baixam mais). Plano B: RustFS.
+- **Storage nomeado pelo papel, não pelo produto**: serviço `storage` no compose, `S3_ENDPOINT_URL=http://storage:9000` em todos os serviços, comentários dizem "Storage (S3)". Só a infra cita o Silo. Exceção: no serviço `storage`, o container precisa receber `MINIO_ROOT_USER`/`MINIO_ROOT_PASSWORD` (nome que o Silo lê) — no `.env` da infra os nomes são `STORAGE_ROOT_*`.
+- Buckets: `ticketly-public` (leitura pública só em `artists/`; lifecycle apaga `tmp/` após 1 dia) e `ticketly-documents` (privado, `invoices/` e `tickets/`, acesso por URL assinada). Criados pelo `storage-initial-setup` (`ticketly-infra/storage/init.sh`, idempotente). Banco guarda só a chave, nunca URL.
+- Sem `container_name` nos composes (conflita com staging na mesma máquina e impede `--scale`).
 - Retry com backoff + DLQ no RabbitMQ; ack manual.
 - Dinheiro sempre em centavos (int).
 - Portal admin fica **por último**: começar com seed/Swagger. Quando fizer: rota `/admin` no mesmo front + módulo admin na mesma API com JWT. A tela de pedidos (status de cada etapa) é a mais importante — serve de debug do fluxo distribuído.
@@ -72,7 +76,7 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 ## Dependências da API (instalar por fase)
 
 - Base (instalada): `@nestjs/config`, `nestjs-zod` + `zod`, `@nestjs/swagger`, `@mikro-orm/{core,postgresql,nestjs,migrations,seeder}` + `@mikro-orm/cli` (dev).
-- Reserva: `ioredis`. Filas: `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule`. E-mail: `@aws-sdk/client-s3`, `nodemailer`. Admin (instalado): `@nestjs/jwt`, `bcrypt` (sem passport).
+- Reserva: `ioredis`. Filas: `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule`. Storage (instalado): `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`. E-mail: `nodemailer`. Admin (instalado): `@nestjs/jwt`, `bcrypt` (sem passport).
 
 ## Em aberto
 

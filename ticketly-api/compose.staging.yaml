@@ -32,6 +32,8 @@ services:
       NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: 5432
+      # Storage (S3) sobe pelo compose do ticketly-infra; acha pelo nome do serviço na ticketly-net
+      S3_ENDPOINT_URL: http://storage:9000
     ports:
       - "${API_PORT:-3000}:3000"
     networks:

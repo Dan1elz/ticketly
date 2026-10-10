@@ -42,7 +42,7 @@ sequenceDiagram
 2. **Checkout** — o cliente envia nome, e-mail, CPF e o `reservationCode`. A API cria a cobrança no gateway.
 3. **Pagamento** — o gateway fake chama o webhook da API (aprovado ou recusado, com atraso aleatório).
 4. **Publicação** — a API marca o pedido como `PAID` e grava o evento na tabela `outbox` **na mesma transação**. Um job publica a outbox no RabbitMQ.
-5. **Processamento paralelo** — fiscal e voucher recebem cada um sua cópia de `order.paid`, geram o PDF, sobem no MinIO e publicam o resultado.
+5. **Processamento paralelo** — fiscal e voucher recebem cada um sua cópia de `order.paid`, geram o PDF, sobem no storage e publicam o resultado.
 6. **Fulfillment** — a API registra cada documento. Quando os dois existem, envia o e-mail e marca `COMPLETED`.
 
 ### Status do pedido
@@ -68,7 +68,10 @@ RESERVED ──► PAID ──► COMPLETED
 | Envelope JSON próprio | Formato neutro entre Node e Python. Por isso não usamos o transport nativo do `@nestjs/microservices`. |
 | Idempotência via Redis | O RabbitMQ pode entregar a mesma mensagem duas vezes. Cada worker anota `processed:{messageId}`. |
 | Junção atômica | Os dois resultados podem chegar ao mesmo tempo. Um `UPDATE` condicional garante que só um deles dispara o e-mail. |
-| PDFs no MinIO (S3) | Nada de pasta compartilhada entre containers. A mensagem carrega só a chave do arquivo. |
+| Arquivos num storage S3 | Nada de pasta compartilhada entre containers. A mensagem carrega só a chave do arquivo. |
+| Storage nomeado pelo papel, não pelo produto | Os serviços falam S3 com `http://storage:9000` e nunca citam o programa. Só a infra sabe que é o Silo — trocar de produto não mexe em nenhum outro repositório. |
+| Silo no lugar do MinIO | O MinIO parou de publicar imagens gratuitas (out/2025) e foi arquivado (abr/2026). O Silo é o fork comunitário mantido pelo Pigsty: mesma API, mesmas variáveis `MINIO_*`, imagens atualizadas. Plano B: RustFS. |
+| Arquivos privados por padrão | NF-e e ingresso têm CPF: bucket privado, acesso só por URL assinada (link temporário gerado pela API). Só `ticketly-public/artists/` é público. |
 | Dinheiro em centavos (`int`) | Evita erro de arredondamento. `15000` = R$ 150,00. |
 | Retry + DLQ | Falha temporária tenta de novo com espera; falha repetida vai pra uma fila de "mortos" para análise. |
 | MikroORM | Unit of Work parecido com o Entity Framework (`em.flush()` ≈ `SaveChanges()`). |
@@ -181,5 +184,20 @@ Regras importantes:
 |---|---|---|
 | RabbitMQ | Mensagens entre serviços | api, fiscal, voucher |
 | Redis | Lock de assento, idempotência, cache de etapas | api, fiscal, voucher |
-| MinIO | Armazenamento dos PDFs | fiscal, voucher (gravam), api (lê) |
+| Storage S3 (Silo) | Fotos dos artistas e PDFs | api (fotos, lê os PDFs), fiscal e voucher (gravam PDFs) |
 | Mailpit | Caixa de e-mail falsa para ver os e-mails enviados | api |
+
+Tudo isso sobe pelo [`ticketly-infra`](../ticketly-infra). O Postgres não está aqui: ele é da API.
+
+### Buckets
+
+| Bucket | Acesso | Prefixos |
+|---|---|---|
+| `ticketly-public` | Leitura pública **só** em `artists/` | `artists/<uuid>.<ext>` — fotos dos artistas<br>`tmp/<uuid>.<ext>` — uploads ainda não confirmados; apagados sozinhos depois de 1 dia (regra de lifecycle) |
+| `ticketly-documents` | Privado (URL assinada) | `invoices/<orderId>.pdf` — NF-e<br>`tickets/<orderId>.pdf` — ingressos |
+
+Regras:
+
+- O banco guarda só a **chave** (`artists/abc.webp`), nunca a URL completa.
+- A chave é gerada pela API ou pelo worker (`<prefixo>/<uuid>`), nunca o nome original do arquivo.
+- "Pastas" não existem de verdade no S3: o prefixo aparece quando o primeiro arquivo é salvo. Não precisa criar nada além dos buckets.

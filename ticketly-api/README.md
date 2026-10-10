@@ -10,8 +10,9 @@ API principal do [Ticketly](../README.md). É o único serviço com banco de dad
 - **Reservas**: trava assentos no Redis por 10 minutos e cria o pedido `RESERVED`.
 - **Checkout e pagamento**: cria a cobrança no `ticketly-pay` e recebe o webhook de aprovação/recusa.
 - **Outbox**: grava os eventos junto com o pedido e publica no RabbitMQ (`order.paid`).
-- **Fulfillment**: consome `invoice.generated` e `ticket.generated`; quando os dois chegam, baixa os PDFs do MinIO, envia o e-mail pro Mailpit e marca o pedido `COMPLETED`.
+- **Fulfillment**: consome `invoice.generated` e `ticket.generated`; quando os dois chegam, baixa os PDFs do storage S3, envia o e-mail pro Mailpit e marca o pedido `COMPLETED`.
 - **Admin**: login (JWT), cadastro de shows e acompanhamento dos pedidos.
+- **Arquivos**: upload das fotos dos artistas pro storage S3 (`ticketly-public`) e URLs assinadas pra baixar NF-e/ingresso (`ticketly-documents`). Ainda não implementado — contrato e variáveis em [docs/pendencias-api.md](../docs/pendencias-api.md).
 
 ## Módulos planejados
 

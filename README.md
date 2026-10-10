@@ -31,7 +31,7 @@ flowchart LR
     api -->|order.paid| mq[(RabbitMQ)]
     mq --> fiscal[ticketly-fiscal<br/>Python]
     mq --> voucher[ticketly-voucher<br/>Python]
-    fiscal -->|PDF| s3[(MinIO)]
+    fiscal -->|PDF| s3[(Storage S3<br/>Silo)]
     voucher -->|PDF| s3
     fiscal -->|invoice.generated| mq
     voucher -->|ticket.generated| mq
@@ -52,7 +52,7 @@ Detalhes do fluxo, decisões e modelo do banco em [docs/arquitetura.md](docs/arq
 | [ticketly-web](ticketly-web) | Loja (cliente) e portal admin | React, Vite, TypeScript, shadcn/ui | Rotas, auth admin, base de serviços |
 | [ticketly-fiscal](ticketly-fiscal) | Worker que gera o PDF da NF-e fake | Python 3.12, aio-pika, reportlab | Esqueleto + Docker |
 | [ticketly-voucher](ticketly-voucher) | Worker que gera o ingresso em PDF com QR code | Python 3.12, aio-pika, reportlab, qrcode | Esqueleto + Docker |
-| `ticketly-infra` | RabbitMQ, Redis, MinIO e Mailpit | Docker Compose | A fazer |
+| [ticketly-infra](ticketly-infra) | Storage S3 (Silo), RabbitMQ, Redis e Mailpit | Docker Compose | Storage pronto; RabbitMQ, Redis e Mailpit a fazer |
 | `ticketly-pay` | Gateway de pagamento fake (simula o Asaas) | A definir | A fazer |
 
 Cada repositório se gerencia sozinho: tem seu próprio `Dockerfile`, `Dockerfile.development`, `compose.development.yaml`, `compose.staging.yaml` e `.env.example`.
@@ -72,7 +72,7 @@ cp .env.example .env
 docker compose -f compose.development.yaml up -d
 ```
 
-1. `ticketly-infra` (quando existir) — RabbitMQ, Redis, MinIO, Mailpit
+1. `ticketly-infra` — Storage S3, RabbitMQ, Redis, Mailpit
 2. `ticketly-api` — sobe junto o Postgres
 3. `ticketly-fiscal` e `ticketly-voucher`
 4. `ticketly-web`
@@ -82,10 +82,12 @@ docker compose -f compose.development.yaml up -d
 | Front | http://localhost:5173 |
 | API | http://localhost:3000 |
 | Postgres | `localhost:5433` |
+| Storage S3 (API) | http://localhost:9000 |
+| Storage (painel web) | http://localhost:9001 |
 
 ## Roadmap
 
-1. **Infra** — `ticketly-infra` com RabbitMQ, Redis, MinIO e Mailpit.
+1. **Infra** — `ticketly-infra` com Storage S3 (pronto), RabbitMQ, Redis e Mailpit.
 2. **Catálogo** — entidades e seed de shows, setores e assentos.
 3. **Reserva** — lock de assento no Redis + pedido `RESERVED`, expiração automática.
 4. **Pagamento** — `ticketly-pay`, webhook, outbox publicando `order.paid`.

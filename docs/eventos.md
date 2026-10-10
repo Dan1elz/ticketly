@@ -82,7 +82,7 @@ Publicado pela **ticketly-api** quando o pagamento é aprovado. Leva tudo que os
 
 ### `invoice.generated`
 
-Publicado pelo **ticketly-fiscal** depois de salvar o PDF da NF-e no MinIO.
+Publicado pelo **ticketly-fiscal** depois de salvar o PDF da NF-e no storage.
 
 ```json
 {
@@ -95,7 +95,7 @@ Publicado pelo **ticketly-fiscal** depois de salvar o PDF da NF-e no MinIO.
 
 ### `ticket.generated`
 
-Publicado pelo **ticketly-voucher** depois de salvar o PDF do ingresso no MinIO.
+Publicado pelo **ticketly-voucher** depois de salvar o PDF do ingresso no storage.
 
 ```json
 {
@@ -109,6 +109,6 @@ Publicado pelo **ticketly-voucher** depois de salvar o PDF do ingresso no MinIO.
 
 1. **Ack manual**: só confirme a mensagem depois de terminar o trabalho.
 2. **Idempotência**: antes de processar, verifique `processed:{messageId}` no Redis. Se já existe, só confirme e ignore.
-3. **Falha temporária** (MinIO fora, timeout): mande para a fila de retry.
+3. **Falha temporária** (storage fora, timeout): mande para a fila de retry.
 4. **Falha definitiva** (payload inválido): mande direto para a DLQ, não adianta tentar de novo.
-5. **Valide o payload** (pydantic no Python, class-validator no Nest) antes de usar.
+5. **Valide o payload** (pydantic no Python, zod no Nest) antes de usar.

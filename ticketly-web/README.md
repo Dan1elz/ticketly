@@ -27,7 +27,7 @@ O `AuthProvider` envolve só as rotas `/admin`, então a loja nunca espera valid
 
 Páginas e componentes **nunca chamam service direto**: usam o hook do recurso (`useArtists()`, `useEvents()`...), que lê o contexto. O provider guarda o que já foi carregado — abrir a edição a partir da lista ou voltar pra lista com os mesmos filtros não faz requisição nova.
 
-A foto do artista é enviada pro MinIO via `POST /uploads/images` assim que o arquivo é escolhido; o formulário guarda só a chave. O que a API ainda precisa implementar pra isso está em [`docs/pendencias-api.md`](../docs/pendencias-api.md).
+A foto do artista é enviada pro storage S3 (bucket `ticketly-public`) via `POST /uploads/images` assim que o arquivo é escolhido; o formulário guarda só a chave. O que a API ainda precisa implementar pra isso está em [`docs/pendencias-api.md`](../docs/pendencias-api.md).
 
 Nas listagens, página e filtros ficam na URL (`?search=...&status=...&page=2`): dá pra recarregar ou compartilhar o link sem perder a busca.
 

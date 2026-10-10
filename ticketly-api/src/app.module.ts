@@ -10,6 +10,8 @@ import { AuthModule } from './auth/auth.module';
 import { ZodValidationPipe } from './common/zod/zod-validation.pipe';
 import { EventsModule } from './events/events.module';
 import { createMikroOrmConfig } from './mikro-orm.config';
+import { StorageModule } from './storage/storage.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { createMikroOrmConfig } from './mikro-orm.config';
     AdminsModule,
     ArtistsModule,
     EventsModule,
+    StorageModule,
+    UploadsModule,
   ],
   providers: [
     { provide: APP_PIPE, useClass: ZodValidationPipe },
