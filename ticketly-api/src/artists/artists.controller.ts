@@ -16,6 +16,7 @@ import { ZodResponse } from 'nestjs-zod';
 import { AUTH_GUARD_ERRORS } from '../auth/auth.exceptions';
 import { ApiErrors } from '../common/swagger/api-errors.decorator';
 import {
+  ArtistImageNotFoundException,
   ArtistInUseException,
   ArtistNotFoundException,
 } from './artists.exceptions';
@@ -36,7 +37,7 @@ export class ArtistsController {
 
   @Post()
   @ZodResponse({ status: HttpStatus.CREATED, type: ArtistResponseDto })
-  @ApiErrors(HttpStatus.BAD_REQUEST)
+  @ApiErrors(HttpStatus.BAD_REQUEST, ArtistImageNotFoundException)
   create(@Body() dto: CreateArtistDto) {
     return this.artistsService.create(dto);
   }
@@ -59,7 +60,11 @@ export class ArtistsController {
 
   @Patch(':id')
   @ZodResponse({ status: HttpStatus.OK, type: ArtistResponseDto })
-  @ApiErrors(HttpStatus.BAD_REQUEST, ArtistNotFoundException)
+  @ApiErrors(
+    HttpStatus.BAD_REQUEST,
+    ArtistNotFoundException,
+    ArtistImageNotFoundException,
+  )
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateArtistDto) {
     return this.artistsService.update(id, dto);
   }

@@ -3,7 +3,9 @@ import { ForeignKeyConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 import type { Paginated } from '../common/repositories/base.repository';
+import { StorageService } from '../storage/storage.service';
 import {
+  ArtistImageNotFoundException,
   ArtistInUseException,
   ArtistNotFoundException,
 } from './artists.exceptions';
@@ -18,9 +20,12 @@ export class ArtistsService {
   constructor(
     @InjectRepository(Artist)
     private readonly artistRepository: ArtistRepository,
+    private readonly storage: StorageService,
   ) {}
 
   async create(dto: CreateArtistDto): Promise<Artist> {
+    await this.ensureImageExists(dto.imageKey);
+
     const artist = Artist.create(dto);
 
     this.artistRepository.add(artist);
@@ -52,6 +57,10 @@ export class ArtistsService {
   async update(id: string, dto: UpdateArtistDto): Promise<Artist> {
     const artist = await this.findOne(id);
 
+    if (dto.imageKey !== undefined && dto.imageKey !== artist.imageKey) {
+      await this.ensureImageExists(dto.imageKey);
+    }
+
     artist.update(dto);
 
     await this.artistRepository.saveChanges();
@@ -73,6 +82,12 @@ export class ArtistsService {
         throw new ArtistInUseException();
       }
       throw error;
+    }
+  }
+
+  private async ensureImageExists(key: string): Promise<void> {
+    if (!(await this.storage.exists('public', key))) {
+      throw new ArtistImageNotFoundException();
     }
   }
 }

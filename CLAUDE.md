@@ -61,7 +61,7 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 
 ## DER (banco da API)
 
-- `artists` (id, name, legal_name, genre, bio, image_url, social_links jsonb, is_active)
+- `artists` (id, name, legal_name, genre, bio, image_key, social_links jsonb, is_active) — `image_key` é a chave no bucket `ticketly-public`
 - `events` (id, name, venue, starts_at, status DRAFT/PUBLISHED)
 - `event_lineup` (id, event_id CASCADE, artist_id RESTRICT, stage, performance_type HEADLINER/SUPPORT/DJ, start_time, end_time, display_order, status CONFIRMED/CANCELLED) — UQ(event_id, artist_id). `POST/PATCH /events` recebe `lineup` com `artistId` (existente) ou `artist` (cria junto); no PATCH a lista substitui o lineup inteiro
 - `sectors` (id, event_id, name, price_cents)
@@ -81,7 +81,7 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 ## Em aberto
 
 - Onde roda o staging (máquina local ou VPS).
-- Se a NF-e fake deve falhar às vezes (pra exercitar retry).
+- Número da NF-e (precisa ser determinístico — ver `docs/decisoes.md`).
 
 ## Ambiente
 

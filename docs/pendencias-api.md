@@ -48,9 +48,10 @@ Resposta `201`:
 
 ### Mudança em `artists`
 
-- Coluna `image_url` → `image_key` (migration nova).
-- `POST /artists` e `PATCH /artists/:id` recebem **`imageKey`** no lugar de `imageUrl`. Validar que começa com `artists/`.
-- A resposta devolve os dois: `imageKey` e `imageUrl` (montada pela API: `S3_PUBLIC_URL + "/" + S3_BUCKET_PUBLIC + "/" + imageKey`). O banco guarda só a chave — se o endereço do storage mudar, nenhum dado precisa ser migrado.
+- ✅ Coluna `image_url` → `image_key` (`Migration20261009190000`).
+- ✅ `POST /artists` e `PATCH /artists/:id` recebem **`imageKey`** (formato `artists/{uuid}.{jpg|png|webp}`) e conferem no storage se o arquivo existe (`400` se não existir).
+- ✅ Rota de upload: ficou **`POST /uploads/artist-image`** (só o campo `file`, sem `folder`). Falta ajustar o front, que ainda chama `POST /uploads/images`.
+- ⏳ Por enquanto a resposta devolve só `imageKey` (artista e `lineup[].artist`). Falta: a resposta devolver os dois: `imageKey` e `imageUrl` (montada pela API: `S3_PUBLIC_URL + "/" + S3_BUCKET_PUBLIC + "/" + imageKey`). O banco guarda só a chave — se o endereço do storage mudar, nenhum dado precisa ser migrado.
 - `POST/PATCH /events` com artista novo no lineup (`lineup[].artist`): mesmo campo `imageKey`.
 - No lineup da resposta de eventos, `artist.imageUrl` continua existindo (o front usa nos avatares).
 

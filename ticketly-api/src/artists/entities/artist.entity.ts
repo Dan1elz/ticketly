@@ -21,8 +21,8 @@ export class Artist extends BaseEntity {
   @Property({ type: 'string', length: 2000 })
   bio: string;
 
-  @Property({ type: 'text' })
-  imageUrl: string;
+  @Property({ type: 'string', length: 255 })
+  imageKey: string;
 
   @Property({ type: 'json' })
   socialLinks: Opt<SocialLinks> = {};
@@ -35,7 +35,7 @@ export class Artist extends BaseEntity {
     if (data.legalName !== undefined) this.legalName = data.legalName;
     if (data.genre !== undefined) this.genre = data.genre;
     if (data.bio !== undefined) this.bio = data.bio;
-    if (data.imageUrl !== undefined) this.imageUrl = data.imageUrl;
+    if (data.imageKey !== undefined) this.imageKey = data.imageKey;
     if (data.socialLinks !== undefined) this.socialLinks = data.socialLinks;
     if (data.isActive !== undefined) this.isActive = data.isActive;
   }
@@ -47,7 +47,7 @@ export class Artist extends BaseEntity {
     artist.legalName = data.legalName;
     artist.genre = data.genre;
     artist.bio = data.bio;
-    artist.imageUrl = data.imageUrl;
+    artist.imageKey = data.imageKey;
     artist.socialLinks = data.socialLinks;
 
     return artist;

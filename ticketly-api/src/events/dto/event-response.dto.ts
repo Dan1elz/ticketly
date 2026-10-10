@@ -15,7 +15,7 @@ const lineupResponseSchema = z.object({
   artist: z.object({
     id: z.uuid(),
     name: z.string(),
-    imageUrl: z.string(),
+    imageKey: z.string(),
   }),
 });
 

@@ -8,7 +8,7 @@ export const artistResponseSchema = z.object({
   legalName: z.string(),
   genre: z.string(),
   bio: z.string(),
-  imageUrl: z.string(),
+  imageKey: z.string(),
   socialLinks: z.record(z.string(), z.string()),
   isActive: z.boolean(),
   createdAt: dateTimeSchema,

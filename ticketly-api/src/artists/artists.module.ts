@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { StorageModule } from '../storage/storage.module';
 import { ArtistsController } from './artists.controller';
 import { ArtistsService } from './artists.service';
 import { Artist } from './entities/artist.entity';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Artist])],
+  imports: [MikroOrmModule.forFeature([Artist]), StorageModule],
   controllers: [ArtistsController],
   providers: [ArtistsService],
   exports: [ArtistsService],
