@@ -24,6 +24,9 @@ export class Artist extends BaseEntity {
   @Property({ type: 'string', length: 255 })
   imageKey: string;
 
+  @Property({ type: 'string', persist: false })
+  imageUrl: Opt<string>;
+
   @Property({ type: 'json' })
   socialLinks: Opt<SocialLinks> = {};
 

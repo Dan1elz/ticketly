@@ -80,9 +80,16 @@ export class EventsService {
     items: LineupItemDto[],
     currentArtistIds = new Set<string>(),
   ): Promise<LineupEntry[]> {
-    const existing = await this.artistsService.findByIds(
-      items.flatMap((item) => item.artistId ?? []),
-    );
+    const [existing] = await Promise.all([
+      this.artistsService.findByIds(
+        items.flatMap((item) => item.artistId ?? []),
+      ),
+      ...items.flatMap((item) =>
+        item.artist
+          ? [this.artistsService.ensureImageExists(item.artist.imageKey)]
+          : [],
+      ),
+    ]);
     const artistsById = new Map(existing.map((artist) => [artist.id, artist]));
 
     return items.map(({ artistId, artist: newArtist, ...data }) => {

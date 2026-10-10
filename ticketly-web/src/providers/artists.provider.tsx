@@ -160,7 +160,7 @@ export function ArtistsProvider({ children }: { children: ReactNode }) {
   )
 
   const uploadArtistImage = useCallback(
-    (file: File) => uploadService.uploadImage(file, "artists", auth),
+    (file: File) => uploadService.uploadArtistImage(file, auth),
     [auth]
   )
 

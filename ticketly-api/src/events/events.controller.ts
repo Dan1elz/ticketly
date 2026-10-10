@@ -14,6 +14,7 @@ import {
 import { ApiBearerAuth, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
+  ArtistImageNotFoundException,
   ArtistInactiveException,
   ArtistNotFoundException,
 } from '../artists/artists.exceptions';
@@ -41,6 +42,7 @@ export class EventsController {
     HttpStatus.BAD_REQUEST,
     ArtistNotFoundException,
     ArtistInactiveException,
+    ArtistImageNotFoundException,
   )
   create(@Body() dto: CreateEventDto) {
     return this.eventsService.create(dto);
@@ -69,6 +71,7 @@ export class EventsController {
     EventNotFoundException,
     ArtistNotFoundException,
     ArtistInactiveException,
+    ArtistImageNotFoundException,
   )
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.eventsService.update(id, dto);

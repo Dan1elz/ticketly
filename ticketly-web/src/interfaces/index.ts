@@ -28,4 +28,4 @@ export type {
   IEventUpdatePayload,
 } from "./event.interface"
 
-export type { TUploadFolder, IUploadedFile } from "./upload.interface"
+export type { IUploadedFile } from "./upload.interface"

@@ -16,6 +16,7 @@ const lineupResponseSchema = z.object({
     id: z.uuid(),
     name: z.string(),
     imageKey: z.string(),
+    imageUrl: z.url(),
   }),
 });
 

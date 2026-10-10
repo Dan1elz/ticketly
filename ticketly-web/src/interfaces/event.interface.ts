@@ -12,7 +12,7 @@ export interface ILineupItem {
   endTime: string | null
   displayOrder: number
   status: TLineupStatus
-  artist: Pick<IArtist, "id" | "name" | "imageUrl">
+  artist: Pick<IArtist, "id" | "name" | "imageKey" | "imageUrl">
 }
 
 export interface IEvent {
