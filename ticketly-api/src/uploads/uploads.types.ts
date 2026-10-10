@@ -20,10 +20,11 @@ export const FILE_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'image/avif': 'avif',
   'application/pdf': 'pdf',
 };
 
 export const ALLOWED_MIME_TYPES: Record<TBucket, string[]> = {
-  public: ['image/jpeg', 'image/png', 'image/webp'],
+  public: ['image/jpeg', 'image/png', 'image/webp', 'image/avif'],
   documents: ['application/pdf'],
 };

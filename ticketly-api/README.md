@@ -51,7 +51,7 @@ Criar as tabelas e o primeiro admin (com o Postgres de pé):
 
 ```bash
 npm run migration:up
-npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD)
+npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD) + 15 artistas e 8 shows de exemplo
 ```
 
 - Swagger: http://localhost:3000/docs — faça login em `POST /admin/auth/login` e cole o `accessToken` em **Authorize**.
@@ -87,7 +87,9 @@ Veja o [.env.example](.env.example). As principais:
 | `npm run migration:up` | Aplica as migrations pendentes |
 | `npm run migration:down` | Desfaz a última migration |
 | `npm run migration:list` | Lista as migrations aplicadas |
-| `npm run db:seed` | Cria o primeiro admin (não duplica se já existir) |
+| `npm run db:seed` | Cria o primeiro admin, os artistas e os shows de exemplo (não duplica se já existirem) |
+| `npm run db:seed:artists` | Só os artistas de exemplo: baixa as fotos e sobe no storage (precisa da infra rodando) |
+| `npm run db:seed:events` | Shows de exemplo com lineup (roda o de artistas antes, se faltar algum) |
 
 ## Dependências por fase
 

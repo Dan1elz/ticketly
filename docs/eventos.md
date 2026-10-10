@@ -6,6 +6,8 @@ Todos os serviços trocam mensagens pelo RabbitMQ usando o mesmo formato. Este a
 
 ## Topologia
 
+Diagramas da topologia, do retry e do fluxo do worker em [mensageria.md](mensageria.md).
+
 - **Exchange**: `ticketly.events` (tipo `topic`, durável)
 - A **routing key** é o próprio `type` do evento (ex.: `order.paid`).
 - Cada consumidor tem **sua própria fila**, assim cada um recebe uma cópia da mensagem.
@@ -94,6 +96,8 @@ Publicado pela **ticketly-api** quando o pagamento é aprovado. Leva tudo que os
 ### `invoice.generated`
 
 Publicado pelo **ticketly-fiscal** depois de salvar o PDF da NF-e no storage.
+
+`invoiceNumber` tem 9 dígitos e é calculado a partir do `orderId` (`sha256(orderId) % 10^9`): o mesmo pedido gera sempre o mesmo número, mesmo reprocessado. Não é sequencial (ver [decisoes.md](decisoes.md)).
 
 ```json
 {

@@ -19,9 +19,9 @@ import { MAX_IMAGE_SIZE } from './uploads.types';
 const imageFilePipe = new ParseFilePipe({
   validators: [
     new FileTypeValidator({
-      fileType: /^image\/(jpeg|png|webp)$/,
+      fileType: /^image\/(jpeg|png|webp|avif)$/,
       overrideMimeType: true,
-      errorMessage: 'Use uma imagem JPG, PNG ou WebP',
+      errorMessage: 'Use uma imagem JPG, PNG, WebP ou AVIF',
     }),
   ],
 });

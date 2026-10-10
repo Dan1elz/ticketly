@@ -3,7 +3,7 @@ import { Seeder } from '@mikro-orm/seeder';
 import { Admin } from '../../admins/entities/admin.entity';
 
 // Primeiro admin: sem ele ninguém loga, e toda rota de admin exige login
-export class DatabaseSeeder extends Seeder {
+export class AdminSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
     const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@ticketly.dev';
 

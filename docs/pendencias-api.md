@@ -8,6 +8,7 @@ O fluxo básico está pronto: `POST /uploads/artist-image` sobe a foto, `POST/PA
 
 - **Apagar a foto antiga** do bucket quando o artista troca de foto (`StorageService.delete`).
 - **Arquivos órfãos** (upload feito e formulário cancelado): a infra já apaga sozinha o que fica em `tmp/` por mais de 1 dia. Pra aproveitar, o upload passa a salvar em `tmp/<uuid>.<ext>` e o `POST/PATCH /artists` move o arquivo pra `artists/` ao salvar (copiar + apagar o original). Isso muda o contrato: o `imageKey` enviado pelo front começa com `tmp/` — combinar com o front antes.
+- **Converter no upload com `sharp`**: hoje a API aceita JPEG, PNG, WebP e AVIF e salva como veio. Converter tudo pra WebP redimensionado (~800px) padroniza o formato, aceita HEIC de iPhone, remove o EXIF (que pode ter GPS) e evita foto de 8 MB na loja.
 - **Mensagens em inglês** no upload: "File is required" (sem arquivo) e "File too large" (413) vêm do Nest/Multer. O front já valida as duas coisas antes de enviar.
 
 ## 2. Outras observações

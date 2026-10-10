@@ -3,10 +3,25 @@ import { ImageUpIcon, RefreshCwIcon, Trash2Icon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE } from "@/constants"
+import {
+  ACCEPTED_IMAGE_EXTENSIONS,
+  ACCEPTED_IMAGE_TYPES,
+  MAX_IMAGE_SIZE,
+} from "@/constants"
 import type { IUploadedFile } from "@/interfaces"
 import { cn } from "@/lib/utils"
 import { handleError, handleWarning } from "@/utils"
+
+// O navegador às vezes informa o tipo vazio (ex: .jfif no Windows): aceita pela
+// extensão também. Quem confere o conteúdo de verdade é a API
+function isAcceptedImage(file: File): boolean {
+  const name = file.name.toLowerCase()
+
+  return (
+    ACCEPTED_IMAGE_TYPES.includes(file.type) ||
+    ACCEPTED_IMAGE_EXTENSIONS.some((extension) => name.endsWith(extension))
+  )
+}
 
 /**
  * Sobe a imagem assim que o arquivo é escolhido (ou arrastado) e devolve a
@@ -34,8 +49,8 @@ export function ImageUpload({
   const upload = async (file: File | undefined) => {
     if (!file) return
 
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      handleWarning("Use uma imagem JPG, PNG ou WebP")
+    if (!isAcceptedImage(file)) {
+      handleWarning("Use uma imagem JPG, PNG, WebP ou AVIF")
       return
     }
 
@@ -70,7 +85,9 @@ export function ImageUpload({
         ref={inputRef}
         id={id}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+        accept={[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_IMAGE_EXTENSIONS].join(
+          ","
+        )}
         className="sr-only"
         tabIndex={-1}
         onChange={(event) => void upload(event.target.files?.[0])}
@@ -113,7 +130,7 @@ export function ImageUpload({
               Clique ou arraste uma foto
             </span>
             <span className="text-xs text-muted-foreground">
-              JPG, PNG ou WebP · até 5 MB
+              JPG, PNG, WebP ou AVIF · até 5 MB
             </span>
           </span>
         )}

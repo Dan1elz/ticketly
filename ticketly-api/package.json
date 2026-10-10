@@ -23,7 +23,9 @@
     "migration:up": "npm run mikro-orm -- migration:up",
     "migration:down": "npm run mikro-orm -- migration:down",
     "migration:list": "npm run mikro-orm -- migration:list",
-    "db:seed": "npm run mikro-orm -- seeder:run"
+    "db:seed": "npm run mikro-orm -- seeder:run",
+    "db:seed:artists": "npm run mikro-orm -- seeder:run --class=ArtistSeeder",
+    "db:seed:events": "npm run mikro-orm -- seeder:run --class=EventSeeder"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1149.0",

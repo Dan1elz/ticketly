@@ -30,6 +30,7 @@ Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, 
 - `docs/arquitetura.md`: fluxo, decisões, DER.
 - `docs/pendencias-api.md`: o que o front já usa e a API ainda não implementou (upload de imagem no storage, `imageKey` em artistas...). Implementou, tira de lá.
 - `docs/decisoes.md`: decisões de mensageria/workers (decisão + porquê + custo), fechadas uma a uma com o Daniel.
+- `docs/mensageria.md`: diagramas Mermaid da topologia do RabbitMQ, retry/DLQ e fluxo do worker. Mudou decisão ou contrato, atualiza os diagramas.
 - `docs/eventos.md`: **contrato das mensagens** (envelope, filas, payloads) — fonte da verdade; mudou evento, atualiza lá primeiro.
 - `README.md` em cada repositório. Ao criar `ticketly-pay`, criar o README dele no mesmo padrão e atualizar a tabela da raiz. Ao adicionar serviço na infra (RabbitMQ, Redis, Mailpit), atualizar `ticketly-infra/README.md`.
 
@@ -81,7 +82,6 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 ## Em aberto
 
 - Onde roda o staging (máquina local ou VPS).
-- Número da NF-e (precisa ser determinístico — ver `docs/decisoes.md`).
 
 ## Ambiente
 

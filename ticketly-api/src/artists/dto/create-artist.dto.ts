@@ -31,7 +31,7 @@ export const createArtistSchema = z.strictObject({
   imageKey: z
     .string({ error: 'Foto é obrigatória' })
     .regex(
-      /^artists\/[0-9a-f-]{36}\.(jpg|png|webp)$/,
+      /^artists\/[0-9a-f-]{36}\.(jpg|png|webp|avif)$/,
       'Foto inválida: envie a imagem pela rota de upload',
     )
     .meta({ example: 'artists/0b9c1e7a-5f7e-4a51-9a51-3c1f2d9e8b10.webp' }),
