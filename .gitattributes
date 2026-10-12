@@ -1,0 +1,14 @@
+# Tudo roda em container Linux: arquivos de texto sempre com quebra de linha LF,
+# mesmo clonando no Windows com core.autocrlf=true (o \r do CRLF quebra scripts .sh no sh do Linux)
+* text=auto eol=lf
+
+# Binários: o Git não mexe
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary

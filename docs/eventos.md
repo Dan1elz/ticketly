@@ -82,16 +82,25 @@ Publicado pela **ticketly-api** quando o pagamento é aprovado. Leva tudo que os
   "items": [
     {
       "seatId": "uuid",
-      "sector": "Pista",
+      "sector": "Cadeira Inferior",
       "row": "A",
       "number": 12,
       "priceCents": 15000
+    },
+    {
+      "seatId": "uuid",
+      "sector": "Pista",
+      "row": null,
+      "number": 1234,
+      "priceCents": 9000
     }
   ],
-  "totalCents": 15000,
+  "totalCents": 24000,
   "paidAt": "2026-10-02T21:30:00Z"
 }
 ```
+
+- `row` é `null` em setor de pista (sem lugar marcado): o ingresso sai como "Pista, nº 1234". Em setor com lugar marcado vem a fileira ("Cadeira Inferior, fileira A, nº 12").
 
 ### `invoice.generated`
 

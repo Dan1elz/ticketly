@@ -6,8 +6,8 @@ API principal do [Ticketly](../README.md). É o único serviço com banco de dad
 
 ## Responsabilidades
 
-- **Catálogo**: shows, setores (com preço) e assentos.
-- **Reservas**: trava assentos no Redis por 10 minutos e cria o pedido `RESERVED`.
+- **Catálogo**: shows, palcos, setores (com preço; lugar marcado ou pista) e assentos (nunca excluídos, só cancelados).
+- **Reservas**: trava assentos no Redis (porteiro) e no Postgres (UPDATE condicional), cria o pedido `RESERVED` e devolve os assentos quando expira ou o cliente desiste.
 - **Checkout e pagamento**: cria a cobrança no `ticketly-pay` e recebe o webhook de aprovação/recusa.
 - **Outbox**: grava os eventos junto com o pedido e publica no RabbitMQ (`order.paid`).
 - **Fulfillment**: consome `invoice.generated` e `ticket.generated`; quando os dois chegam, baixa os PDFs do storage S3, envia o e-mail pro Mailpit e marca o pedido `COMPLETED`.
@@ -18,7 +18,8 @@ API principal do [Ticketly](../README.md). É o único serviço com banco de dad
 
 | Módulo | O que faz |
 |---|---|
-| `events` | Shows, setores e assentos |
+| `events` | Shows, palcos e lineup |
+| `sectors` | Setores e assentos (geração, bloqueio, cancelamento) |
 | `reservations` | Lock de assentos e criação do pedido |
 | `orders` | Consulta e ciclo de vida do pedido |
 | `payments` | Integração com o gateway + webhook |

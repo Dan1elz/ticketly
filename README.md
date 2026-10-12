@@ -14,8 +14,8 @@ O objetivo não é o e-commerce em si — é aprender, na prática, os problemas
 
 ## O que o sistema faz
 
-1. O cliente escolhe um show e os assentos — **sem precisar de login**.
-2. Os assentos ficam reservados por 10 minutos enquanto ele paga.
+1. O cliente escolhe um show e os assentos (ou a quantidade, na pista) — **sem precisar de login**.
+2. Os assentos ficam reservados enquanto ele paga: 10 minutos pra preencher o checkout, estendidos pra 30 quando a cobrança Pix é gerada.
 3. Um gateway de pagamento (fake) aprova ou recusa a cobrança.
 4. Com o pagamento aprovado, dois serviços trabalham **em paralelo**: um gera a NF-e (fake) em PDF, outro gera o ingresso com QR code.
 5. Quando os dois terminam, o cliente recebe um e-mail com os dois PDFs anexados.
@@ -88,8 +88,8 @@ docker compose -f compose.development.yaml up -d
 ## Roadmap
 
 1. **Infra** — `ticketly-infra` com Storage S3 (pronto), RabbitMQ, Redis e Mailpit.
-2. **Catálogo** — entidades e seed de shows, setores e assentos.
-3. **Reserva** — lock de assento no Redis + pedido `RESERVED`, expiração automática.
+2. **Catálogo** — entidades e seed de shows, palcos, setores e assentos (lugar marcado e pista).
+3. **Reserva** — lock de assento no Redis + UPDATE condicional no Postgres + pedido `RESERVED`, desistência e expiração automática.
 4. **Pagamento** — `ticketly-pay`, webhook, outbox publicando `order.paid`.
 5. **Workers** — voucher primeiro (ponta a ponta), depois fiscal.
 6. **Fulfillment** — junção dos dois resultados + e-mail com anexos.

@@ -36,13 +36,21 @@ Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, 
 
 ## Fluxo
 
-1. Cliente escolhe assento **sem login** → `POST /reservations` → bloqueio no Redis por 10 min (`SET NX EX`) + pedido `RESERVED` com `reservation_code` aleatório (quem tem o código é o dono da reserva).
-2. Checkout: nome, e-mail, CPF + reservation_code → API cria cobrança no gateway fake.
+1. Cliente escolhe assento (setor `SEATED`) ou quantidade (pista, `GENERAL_ADMISSION`: API pega os primeiros livres) **sem login** → `POST /reservations` → trava no Redis (`SET NX EX`, porteiro) + `UPDATE seats SET status='RESERVED' WHERE id=? AND status='AVAILABLE'` (garantia; 0 linhas = 409) + pedido `RESERVED` com `reservation_code` aleatório (quem tem o código é o dono da reserva). Prazo `RESERVATION_HOLD_MINUTES` (10). Cliente pode desistir: `DELETE /reservations/:code` → pedido `CANCELLED`.
+2. Checkout: nome, e-mail, CPF + reservation_code → API cria cobrança no gateway fake e estende `expires_at` pra `PAYMENT_HOLD_MINUTES` (30, Pix demora). Expiração: job olha `orders.expires_at` e devolve os assentos pra `AVAILABLE` (o TTL do Redis só limpa a trava).
 3. Gateway fake chama webhook da API (aprovado/recusado, com delay aleatório) → pedido `PAID` + evento gravado na tabela `outbox` na mesma transação → job publica `order.paid` no RabbitMQ.
 4. Exchange topic, **uma fila por worker** → fiscal e voucher processam em paralelo, sobem PDF no storage, publicam `invoice.generated` / `ticket.generated`.
 5. API consome os dois, grava em `documents`, e quando os dois existem (UPDATE condicional atômico, pra não mandar 2x) envia e-mail com anexos pro Mailpit → `COMPLETED`.
 
-Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED`.
+Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED`, `CANCELLED` (cliente desistiu) e `FAILED`.
+
+## Setores e assentos (decidido com o Daniel em 2026-10-12; detalhes em `docs/arquitetura.md`)
+
+- Setor tem `type` `SEATED` (grade de quadradinhos, gerada por blocos de fileiras/números) ou `GENERAL_ADMISSION` (pista: admin informa quantidade, admin vê contadores, loja escolhe quantidade). Pista também tem uma linha por ingresso em `seats`, sem `row` e sem `grid_*`.
+- Status do assento **mora no assento**: `AVAILABLE`, `RESERVED`, `SOLD` (definitivo, sem reembolso), `BLOCKED` (temporário, com observação), `CANCELLED` (definitivo, "criado indevidamente", com observação, só a partir de `AVAILABLE`). Admin muda por ação com nome (`/block`, `/unblock`, `/cancel`), nunca `PATCH { status }`.
+- **Assento nunca é excluído.** Setor só é excluído sem assento. Evento com setores não é excluído: é cancelado (`CANCELLED`), só sem assento `SOLD` nem `RESERVED`. Publicar exige pelo menos 1 assento `AVAILABLE`.
+- `order_items` nunca é apagado (histórico); `price_cents` é o preço da hora da reserva.
+- Palco é entidade do evento (`event_stages`); o lineup escolhe um palco. Assento não se liga a palco. Sem mapa geral do local.
 
 ## Decisões já tomadas
 
@@ -63,16 +71,17 @@ Status do pedido: `RESERVED → PAID → COMPLETED`, desvios `EXPIRED` e `FAILED
 ## DER (banco da API)
 
 - `artists` (id, name, legal_name, genre, bio, image_key, social_links jsonb, is_active) — `image_key` é a chave no bucket `ticketly-public`
-- `events` (id, name, venue, starts_at, status DRAFT/PUBLISHED)
-- `event_lineup` (id, event_id CASCADE, artist_id RESTRICT, stage, performance_type HEADLINER/SUPPORT/DJ, start_time, end_time, display_order, status CONFIRMED/CANCELLED) — UQ(event_id, artist_id). `POST/PATCH /events` recebe `lineup` com `artistId` (existente) ou `artist` (cria junto); no PATCH a lista substitui o lineup inteiro
-- `sectors` (id, event_id, name, price_cents)
-- `seats` (id, sector_id, row, number)
+- `events` (id, name, venue, starts_at, status DRAFT/PUBLISHED/CANCELLED)
+- `event_stages` (id, event_id CASCADE, name, display_order) — UQ(event_id, name). **A fazer**
+- `event_lineup` (id, event_id CASCADE, artist_id RESTRICT, stage_id RESTRICT (**a fazer**: hoje é `stage` texto; migration cria os palcos a partir dos textos), performance_type HEADLINER/SUPPORT/DJ, start_time, end_time, display_order, status CONFIRMED/CANCELLED) — UQ(event_id, artist_id). `POST/PATCH /events` recebe `lineup` com `artistId` (existente) ou `artist` (cria junto); no PATCH a lista substitui o lineup inteiro
+- `sectors` (id, event_id RESTRICT, name, type SEATED/GENERAL_ADMISSION, description?, price_cents ≥ 0, color #RRGGBB, display_order, max_per_order? > 0) — UQ(event_id, name)
+- `seats` (id, sector_id RESTRICT, row? (null na pista), number > 0, grid_row?/grid_column? (só SEATED, os dois ou nenhum), is_accessible, status AVAILABLE/RESERVED/SOLD/BLOCKED/CANCELLED, status_note (obrigatório em BLOCKED/CANCELLED), status_changed_at, status_changed_by → admin_users) — índices únicos **parciais** escritos à mão na migration: `(sector_id, row, number) NULLS NOT DISTINCT WHERE status <> 'CANCELLED'` e `(sector_id, grid_row, grid_column) WHERE status <> 'CANCELLED'`
 - `orders` (id, reservation_code UQ, status, customer_name, customer_email, customer_cpf, total_cents, expires_at, paid_at)
-- `order_items` (id, order_id, seat_id **UNIQUE** — garante que o lugar não é vendido 2x; ao expirar a reserva, apagar os itens, price_cents)
+- `order_items` (id, order_id, seat_id RESTRICT **não único** — o assento aparece em vários pedidos ao longo do tempo; nunca apagado, price_cents)
 - `payments` (id, order_id, gateway_charge_id UQ, status, amount_cents, created_at) — várias tentativas por pedido
 - `documents` (id, order_id, type INVOICE/TICKET, storage_key, created_at) — UQ(order_id, type)
 - `outbox` (id, event_type, payload jsonb, created_at, published_at)
-- depois: `admin_users`
+- `admin_users` (login do portal admin)
 
 ## Dependências da API (instalar por fase)
 
