@@ -19,7 +19,7 @@ export const socialLinksSchema = z
     },
   });
 
-export type SocialLinks = z.infer<typeof socialLinksSchema>;
+export type TSocialLinks = z.infer<typeof socialLinksSchema>;
 
 export const createArtistSchema = z.strictObject({
   name: requiredText('Nome', 120).meta({ example: 'Anitta' }),

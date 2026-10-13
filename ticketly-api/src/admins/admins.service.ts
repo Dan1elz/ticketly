@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
-  UniqueConstraintViolationException,
-  type FilterQuery,
-} from '@mikro-orm/postgresql';
+import { UniqueConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
-import type { Paginated } from '../common/repositories/base.repository';
+import type { IPaginated } from '../common/repositories/base.repository';
 import {
   AdminCannotDeleteOwnAccountException,
   AdminEmailAlreadyExistsException,
@@ -41,7 +38,7 @@ export class AdminsService {
     return admin;
   }
 
-  findAll(query: ListAdminsQueryDto): Promise<Paginated<Admin>> {
+  findAll(query: ListAdminsQueryDto): Promise<IPaginated<Admin>> {
     return this.adminRepository.search(query);
   }
 

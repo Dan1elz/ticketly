@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ForeignKeyConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
-import type { Paginated } from '../common/repositories/base.repository';
+import type { IPaginated } from '../common/repositories/base.repository';
 import { StorageService } from '../storage/storage.service';
 import {
   ArtistImageNotFoundException,
@@ -34,7 +34,7 @@ export class ArtistsService {
     return artist;
   }
 
-  findAll(query: ListArtistsQueryDto): Promise<Paginated<Artist>> {
+  findAll(query: ListArtistsQueryDto): Promise<IPaginated<Artist>> {
     return this.artistRepository.search(query);
   }
 

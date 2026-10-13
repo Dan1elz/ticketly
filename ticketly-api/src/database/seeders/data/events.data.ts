@@ -1,37 +1,35 @@
-import {
-  LineupStatus,
-  PerformanceType,
-} from '../../../events/entities/event-lineup.entity';
-import { EventStatus } from '../../../events/entities/event.entity';
+import { EEventStatus } from '../../../events/enums/event-status.enum';
+import { ELineupStatus } from '../../../events/enums/lineup-status.enum';
+import { EPerformanceType } from '../../../events/enums/performance-type.enum';
 
-export interface LineupSeed {
+export interface ILineupSeed {
   artist: string;
   stage?: string;
-  performanceType: PerformanceType;
+  performanceType: EPerformanceType;
   startTime: Date;
   endTime: Date;
-  status?: LineupStatus;
+  status?: ELineupStatus;
 }
 
-export interface EventSeed {
+export interface IEventSeed {
   name: string;
   venue: string;
   startsAt: Date;
-  status: EventStatus;
-  lineup: LineupSeed[];
+  status: EEventStatus;
+  lineup: ILineupSeed[];
 }
 
 // Horário de Brasília: at('2026-11-14', '21:30')
 const at = (date: string, time: string) => new Date(`${date}T${time}:00-03:00`);
 
-const { HEADLINER, SUPPORT, DJ } = PerformanceType;
+const { HEADLINER, SUPPORT, DJ } = EPerformanceType;
 
-export const EVENTS: EventSeed[] = [
+export const EVENTS: IEventSeed[] = [
   {
     name: 'Festival Maré Alta 2026',
     venue: 'Parque Villa-Lobos — São Paulo',
     startsAt: at('2026-11-14', '14:00'),
-    status: EventStatus.PUBLISHED,
+    status: EEventStatus.PUBLISHED,
     lineup: [
       {
         artist: 'Brisa Tropical',
@@ -81,7 +79,7 @@ export const EVENTS: EventSeed[] = [
     name: 'V$TOR — Turnê Zona Leste',
     venue: 'Audio — São Paulo',
     startsAt: at('2026-11-21', '22:00'),
-    status: EventStatus.PUBLISHED,
+    status: EEventStatus.PUBLISHED,
     lineup: [
       {
         artist: 'MC Pardal',
@@ -101,7 +99,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Noite Sombria: Post-Punk & Dark Wave',
     venue: 'Fabrique Club — São Paulo',
     startsAt: at('2026-11-28', '21:00'),
-    status: EventStatus.PUBLISHED,
+    status: EEventStatus.PUBLISHED,
     lineup: [
       {
         artist: 'Aurora Fria',
@@ -121,7 +119,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Marina Silveira — Ao Vivo no Teatro',
     venue: 'Teatro Castro Alves — Salvador',
     startsAt: at('2026-12-05', '20:00'),
-    status: EventStatus.PUBLISHED,
+    status: EEventStatus.PUBLISHED,
     lineup: [
       {
         artist: 'Theo Vasconcellos',
@@ -141,7 +139,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Batalha & Boom Bap',
     venue: 'Viaduto Santa Tereza — Belo Horizonte',
     startsAt: at('2026-12-12', '19:00'),
-    status: EventStatus.PUBLISHED,
+    status: EEventStatus.PUBLISHED,
     lineup: [
       {
         artist: 'Nômade Estelar',
@@ -167,7 +165,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Rock na Garagem',
     venue: 'Cine Joia — São Paulo',
     startsAt: at('2027-01-16', '21:00'),
-    status: EventStatus.DRAFT,
+    status: EEventStatus.DRAFT,
     lineup: [
       {
         artist: 'Chuva Ácida',
@@ -187,7 +185,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Sertanejo na Arena',
     venue: 'Goiânia Arena — Goiânia',
     startsAt: at('2027-02-06', '20:00'),
-    status: EventStatus.DRAFT,
+    status: EEventStatus.DRAFT,
     lineup: [
       {
         artist: 'Theo Vasconcellos',
@@ -207,7 +205,7 @@ export const EVENTS: EventSeed[] = [
     name: 'Lo-Fi Sessions',
     venue: 'Blue Note — São Paulo',
     startsAt: at('2027-03-06', '20:00'),
-    status: EventStatus.DRAFT,
+    status: EEventStatus.DRAFT,
     lineup: [
       {
         artist: 'Luna Marés',
@@ -220,7 +218,7 @@ export const EVENTS: EventSeed[] = [
         performanceType: SUPPORT,
         startTime: at('2027-03-06', '21:00'),
         endTime: at('2027-03-06', '21:45'),
-        status: LineupStatus.CANCELLED,
+        status: ELineupStatus.CANCELLED,
       },
       {
         artist: 'Nômade Estelar',

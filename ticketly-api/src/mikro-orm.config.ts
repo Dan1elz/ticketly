@@ -4,6 +4,7 @@ import { SeedManager } from '@mikro-orm/seeder';
 import { Admin } from './admins/entities/admin.entity';
 import { Artist } from './artists/entities/artist.entity';
 import { EventLineup } from './events/entities/event-lineup.entity';
+import { EventStage } from './events/entities/event-stage.entity';
 import { Event } from './events/entities/event.entity';
 
 // Função (e não objeto pronto) pra ler o process.env só na hora de usar:
@@ -15,7 +16,7 @@ export const createMikroOrmConfig = () =>
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     dbName: process.env.DB_NAME,
-    entities: [Admin, Artist, Event, EventLineup],
+    entities: [Admin, Artist, Event, EventStage, EventLineup],
     extensions: [Migrator, SeedManager],
     migrations: {
       path: 'dist/database/migrations',

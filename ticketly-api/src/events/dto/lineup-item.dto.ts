@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { createArtistSchema } from '../../artists/dto/create-artist.dto';
 import { dateTimeSchema } from '../../common/zod/schemas';
-import { LineupStatus, PerformanceType } from '../entities/event-lineup.entity';
+import { ELineupStatus } from '../enums/lineup-status.enum';
+import { EPerformanceType } from '../enums/performance-type.enum';
+import { stageNameSchema } from './stage-item.dto';
 
 export const lineupItemSchema = z
   .strictObject({
@@ -12,17 +14,17 @@ export const lineupItemSchema = z
     artist: createArtistSchema
       .optional()
       .meta({ description: 'Artista novo, cadastrado junto com o evento' }),
-    stage: z
-      .string()
-      .trim()
-      .min(1, 'Palco é obrigatório')
-      .max(100, 'Palco deve ter no máximo 100 caracteres')
-      .default('Main Stage'),
-    performanceType: z.enum(PerformanceType).default(PerformanceType.HEADLINER),
+    stage: stageNameSchema.meta({
+      description: 'Nome de um dos palcos do evento',
+      example: 'Palco Principal',
+    }),
+    performanceType: z
+      .enum(EPerformanceType)
+      .default(EPerformanceType.HEADLINER),
     startTime: dateTimeSchema.nullable().default(null),
     endTime: dateTimeSchema.nullable().default(null),
     displayOrder: z.number().int().min(1).default(1),
-    status: z.enum(LineupStatus).default(LineupStatus.CONFIRMED),
+    status: z.enum(ELineupStatus).default(ELineupStatus.CONFIRMED),
   })
   .refine((item) => !item.artistId !== !item.artist, {
     error: 'Informe artistId (artista existente) ou artist (artista novo)',

@@ -8,7 +8,7 @@ import {
   ALLOWED_MIME_TYPES,
   FILE_EXTENSIONS,
 } from '../../uploads/uploads.types';
-import { ARTISTS, type ArtistSeed } from './data/artists.data';
+import { ARTISTS, type IArtistSeed } from './data/artists.data';
 
 export class ArtistSeeder extends Seeder {
   async run(em: EntityManager): Promise<void> {
@@ -37,7 +37,7 @@ export class ArtistSeeder extends Seeder {
 
   private async uploadPhoto(
     storage: StorageService,
-    artist: ArtistSeed,
+    artist: IArtistSeed,
   ): Promise<string> {
     const response = await fetch(artist.photoUrl, {
       headers: { Accept: 'image/jpeg' },

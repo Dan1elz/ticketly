@@ -6,15 +6,16 @@ import {
   Property,
 } from '@mikro-orm/decorators/legacy';
 import { BaseEntity } from '../../common/entities/base.entity';
-import type { CreateEventDto } from '../dto/create-event.dto';
-import type { UpdateEventDto } from '../dto/update-event.dto';
+import { EEventStatus } from '../enums/event-status.enum';
 import { EventRepository } from '../events.repository';
-import { EventLineup, type LineupEntry } from './event-lineup.entity';
-
-export enum EventStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-}
+import type {
+  IEventChanges,
+  IEventData,
+  IEventStageData,
+  ILineupEntry,
+} from '../events.types';
+import { EventLineup } from './event-lineup.entity';
+import { EventStage } from './event-stage.entity';
 
 @Entity({ tableName: 'events', repository: () => EventRepository })
 export class Event extends BaseEntity {
@@ -29,8 +30,8 @@ export class Event extends BaseEntity {
   @Property({ type: 'datetime' })
   startsAt: Date;
 
-  @Enum({ items: () => EventStatus, nativeEnumName: 'event_status' })
-  status: Opt<EventStatus> = EventStatus.DRAFT;
+  @Enum({ items: () => EEventStatus, nativeEnumName: 'event_status' })
+  status: Opt<EEventStatus> = EEventStatus.DRAFT;
 
   @OneToMany(() => EventLineup, (lineup) => lineup.event, {
     orphanRemoval: true,
@@ -38,41 +39,97 @@ export class Event extends BaseEntity {
   })
   lineup = new Collection<EventLineup>(this);
 
-  update(data: UpdateEventDto, lineup?: LineupEntry[]) {
+  @OneToMany(() => EventStage, (stage) => stage.event, {
+    orphanRemoval: true,
+    orderBy: { displayOrder: 'asc', name: 'asc' },
+  })
+  stages = new Collection<EventStage>(this);
+
+  get isCancelled(): boolean {
+    return this.status === EEventStatus.CANCELLED;
+  }
+
+  cancel() {
+    this.status = EEventStatus.CANCELLED;
+  }
+
+  stageNames(): Set<string> {
+    return new Set(this.stages.getItems().map((stage) => stage.name));
+  }
+
+  // Palcos antes do lineup: o lineup procura o palco pelo nome na lista nova
+  update(
+    data: IEventChanges,
+    stages?: IEventStageData[],
+    lineup?: ILineupEntry[],
+  ) {
     if (data.name !== undefined) this.name = data.name;
     if (data.venue !== undefined) this.venue = data.venue;
     if (data.startsAt !== undefined) this.startsAt = data.startsAt;
     if (data.status !== undefined) this.status = data.status;
+    if (stages !== undefined) this.setStages(stages);
     if (lineup !== undefined) this.setLineup(lineup);
   }
 
-  // A lista enviada é o lineup completo: quem já estava é atualizado,
-  // quem é novo entra e quem ficou de fora é apagado (orphanRemoval)
-  private setLineup(entries: LineupEntry[]) {
+  private setStages(items: IEventStageData[]) {
     const current = new Map(
-      this.lineup.getItems().map((item) => [item.artist.id, item]),
+      this.stages.getItems().map((stage) => [stage.name, stage]),
     );
 
-    const sorted = entries.toSorted((a, b) => a.displayOrder - b.displayOrder);
+    const sorted = items.toSorted((a, b) => a.displayOrder - b.displayOrder);
 
-    this.lineup.set(
-      sorted.map((entry) => {
-        const existing = current.get(entry.artist.id);
+    this.stages.set(
+      sorted.map((item) => {
+        const existing = current.get(item.name);
 
-        if (!existing) return EventLineup.create(this, entry);
+        if (!existing) return EventStage.create(this, item);
 
-        existing.update(entry);
+        existing.update(item);
         return existing;
       }),
     );
   }
 
-  static create(data: CreateEventDto, lineup: LineupEntry[]): Event {
+  private setLineup(entries: ILineupEntry[]) {
+    const current = new Map(
+      this.lineup.getItems().map((item) => [item.artist.id, item]),
+    );
+    const stages = new Map(
+      this.stages.getItems().map((stage) => [stage.name, stage]),
+    );
+
+    const sorted = entries.toSorted((a, b) => a.displayOrder - b.displayOrder);
+
+    this.lineup.set(
+      sorted.map(({ artist, stage: stageName, ...data }) => {
+        const stage = stages.get(stageName);
+
+        // Não deveria acontecer: o DTO/service já validaram o nome
+        if (!stage) {
+          throw new Error(`Palco "${stageName}" não existe no evento`);
+        }
+
+        const existing = current.get(artist.id);
+
+        if (!existing) return EventLineup.create(this, artist, stage, data);
+
+        existing.update(stage, data);
+        return existing;
+      }),
+    );
+  }
+
+  static create(
+    data: IEventData,
+    stages: IEventStageData[],
+    lineup: ILineupEntry[],
+  ): Event {
     const event = new Event();
 
     event.name = data.name;
     event.venue = data.venue;
     event.startsAt = data.startsAt;
+    event.setStages(stages);
     event.setLineup(lineup);
 
     return event;

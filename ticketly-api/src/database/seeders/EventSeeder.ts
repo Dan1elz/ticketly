@@ -1,13 +1,11 @@
 import type { EntityManager } from '@mikro-orm/postgresql';
 import { Seeder } from '@mikro-orm/seeder';
 import { Artist } from '../../artists/entities/artist.entity';
-import {
-  LineupStatus,
-  type LineupEntry,
-} from '../../events/entities/event-lineup.entity';
 import { Event } from '../../events/entities/event.entity';
+import { ELineupStatus } from '../../events/enums/lineup-status.enum';
+import type { ILineupEntry } from '../../events/events.types';
 import { ArtistSeeder } from './ArtistSeeder';
-import { EVENTS, type EventSeed } from './data/events.data';
+import { EVENTS, type IEventSeed } from './data/events.data';
 
 const DEFAULT_STAGE = 'Palco Principal';
 
@@ -40,8 +38,8 @@ export class EventSeeder extends Seeder {
     await em.flush();
   }
 
-  private buildEvent(seed: EventSeed, artistsByName: Map<string, Artist>) {
-    const lineup = seed.lineup.map((item, index): LineupEntry => {
+  private buildEvent(seed: IEventSeed, artistsByName: Map<string, Artist>) {
+    const lineup = seed.lineup.map((item, index): ILineupEntry => {
       const artist = artistsByName.get(item.artist);
 
       if (!artist) {
@@ -57,17 +55,18 @@ export class EventSeeder extends Seeder {
         startTime: item.startTime,
         endTime: item.endTime,
         displayOrder: index + 1,
-        status: item.status ?? LineupStatus.CONFIRMED,
+        status: item.status ?? ELineupStatus.CONFIRMED,
       };
     });
 
+    // Palcos saem dos nomes usados no lineup, na ordem em que aparecem
+    const stages = [...new Set(lineup.map((item) => item.stage))].map(
+      (name, index) => ({ name, displayOrder: index + 1 }),
+    );
+
     const event = Event.create(
-      {
-        name: seed.name,
-        venue: seed.venue,
-        startsAt: seed.startsAt,
-        lineup: [],
-      },
+      { name: seed.name, venue: seed.venue, startsAt: seed.startsAt },
+      stages,
       lineup,
     );
     event.status = seed.status;

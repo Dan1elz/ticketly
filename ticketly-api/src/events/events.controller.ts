@@ -25,7 +25,12 @@ import { EventListResponseDto } from './dto/event-list-response.dto';
 import { EventResponseDto } from './dto/event-response.dto';
 import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { EventNotFoundException } from './events.exceptions';
+import {
+  EventCancelledException,
+  EventNotFoundException,
+  StageInUseException,
+  StageNotFoundException,
+} from './events.exceptions';
 import { EventsService } from './events.service';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -69,12 +74,27 @@ export class EventsController {
   @ApiErrors(
     HttpStatus.BAD_REQUEST,
     EventNotFoundException,
+    EventCancelledException,
+    StageNotFoundException,
+    StageInUseException,
     ArtistNotFoundException,
     ArtistInactiveException,
     ArtistImageNotFoundException,
   )
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.eventsService.update(id, dto);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.OK)
+  @ZodResponse({ status: HttpStatus.OK, type: EventResponseDto })
+  @ApiErrors(
+    HttpStatus.BAD_REQUEST,
+    EventNotFoundException,
+    EventCancelledException,
+  )
+  cancel(@Param('id', ParseUUIDPipe) id: string) {
+    return this.eventsService.cancel(id);
   }
 
   @Delete(':id')

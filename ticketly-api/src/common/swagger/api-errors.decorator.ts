@@ -7,10 +7,10 @@ import {
 import { ApiResponse, type ApiResponseExamples } from '@nestjs/swagger';
 import { ErrorResponseDto } from './error-response.dto';
 
-type ExceptionClass = Type<HttpException> & (new () => HttpException);
-type ApiErrorSource = HttpStatus | ExceptionClass;
-type ApiErrorEntry =
-  ApiErrorSource | { error: ApiErrorSource; description: string };
+type TExceptionClass = Type<HttpException> & (new () => HttpException);
+type TApiErrorSource = HttpStatus | TExceptionClass;
+type TApiErrorEntry =
+  TApiErrorSource | { error: TApiErrorSource; description: string };
 
 const DEFAULT_DESCRIPTIONS: Partial<Record<HttpStatus, string>> = {
   [HttpStatus.BAD_REQUEST]: 'Dados inválidos',
@@ -22,7 +22,7 @@ const DEFAULT_DESCRIPTIONS: Partial<Record<HttpStatus, string>> = {
   [HttpStatus.INTERNAL_SERVER_ERROR]: 'Erro interno',
 };
 
-interface ResolvedError {
+interface IResolvedError {
   status: HttpStatus;
   name: string;
   description: string;
@@ -39,7 +39,7 @@ function statusName(status: HttpStatus): string {
     );
 }
 
-function resolve(entry: ApiErrorEntry): ResolvedError {
+function resolve(entry: TApiErrorEntry): IResolvedError {
   const { error, description } =
     typeof entry === 'object'
       ? entry
@@ -79,8 +79,8 @@ function resolve(entry: ApiErrorEntry): ResolvedError {
  * @ApiErrors(HttpStatus.BAD_REQUEST, AdminNotFoundException)
  * @ApiErrors({ error: AdminNotFoundException, description: 'Texto próprio' })
  */
-export function ApiErrors(...entries: ApiErrorEntry[]) {
-  const byStatus = new Map<HttpStatus, ResolvedError[]>();
+export function ApiErrors(...entries: TApiErrorEntry[]) {
+  const byStatus = new Map<HttpStatus, IResolvedError[]>();
 
   for (const resolved of entries.map(resolve)) {
     byStatus.set(resolved.status, [

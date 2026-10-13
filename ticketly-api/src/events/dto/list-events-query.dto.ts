@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { paginationQuerySchema } from '../../common/zod/schemas';
-import { EventStatus } from '../entities/event.entity';
+import { EEventStatus } from '../enums/event-status.enum';
 
 const listEventsQuerySchema = paginationQuerySchema.extend({
   search: z
@@ -11,7 +11,7 @@ const listEventsQuerySchema = paginationQuerySchema.extend({
     .optional()
     .meta({ description: 'Busca no nome ou local' }),
   artistId: z.uuid().optional(),
-  status: z.enum(EventStatus).optional(),
+  status: z.enum(EEventStatus).optional(),
 });
 
 export class ListEventsQueryDto extends createZodDto(listEventsQuerySchema) {}

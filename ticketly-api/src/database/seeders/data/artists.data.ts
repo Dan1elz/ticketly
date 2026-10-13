@@ -1,18 +1,18 @@
-import type { SocialLinks } from '../../../artists/dto/create-artist.dto';
+import type { TSocialLinks } from '../../../artists/dto/create-artist.dto';
 
-export interface ArtistSeed {
+export interface IArtistSeed {
   name: string;
   legalName: string;
   genre: string;
   bio: string;
-  socialLinks: SocialLinks;
+  socialLinks: TSocialLinks;
   photoUrl: string;
 }
 
 const unsplash = (id: string) =>
   `https://images.unsplash.com/${id}?w=800&auto=format&fit=crop&q=80`;
 
-export const ARTISTS: ArtistSeed[] = [
+export const ARTISTS: IArtistSeed[] = [
   {
     name: 'Luna Marés',
     legalName: 'Helena Albuquerque Duarte',

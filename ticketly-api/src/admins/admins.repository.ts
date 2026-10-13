@@ -1,12 +1,12 @@
 import type { FilterQuery } from '@mikro-orm/postgresql';
 import {
   BaseRepository,
-  type Paginated,
-  type PaginationParams,
+  type IPaginated,
+  type IPaginationParams,
 } from '../common/repositories/base.repository';
 import { Admin } from './entities/admin.entity';
 
-export interface SearchAdminsParams extends PaginationParams {
+export interface ISearchAdminsParams extends IPaginationParams {
   search?: string;
   isActive?: boolean;
 }
@@ -20,7 +20,7 @@ export class AdminRepository extends BaseRepository<Admin> {
     search,
     isActive,
     ...pagination
-  }: SearchAdminsParams): Promise<Paginated<Admin>> {
+  }: ISearchAdminsParams): Promise<IPaginated<Admin>> {
     const where: FilterQuery<Admin> = {};
 
     if (search) {

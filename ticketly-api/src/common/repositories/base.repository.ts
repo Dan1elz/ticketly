@@ -5,12 +5,12 @@ import {
 } from '@mikro-orm/postgresql';
 import type { BaseEntity } from '../entities/base.entity';
 
-export interface PaginationParams {
+export interface IPaginationParams {
   page: number;
   perPage: number;
 }
 
-export interface Paginated<T> {
+export interface IPaginated<T> {
   items: T[];
   total: number;
 }
@@ -28,9 +28,9 @@ export abstract class BaseRepository<
 
   async paginate(
     where: FilterQuery<T>,
-    { page, perPage }: PaginationParams,
+    { page, perPage }: IPaginationParams,
     orderBy?: OrderDefinition<T>,
-  ): Promise<Paginated<T>> {
+  ): Promise<IPaginated<T>> {
     const [items, total] = await this.findAndCount(where, {
       orderBy:
         orderBy ?? ({ createdAt: 'desc', id: 'asc' } as OrderDefinition<T>),

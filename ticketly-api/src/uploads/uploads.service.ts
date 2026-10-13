@@ -12,7 +12,7 @@ import {
   type TDocumentFolder,
   type TPublicFolder,
   type TUploadFolder,
-  type UploadResult,
+  type IUploadResult,
 } from './uploads.types';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class UploadsService {
   async uploadPublicImage(
     file: Express.Multer.File,
     folder: TPublicFolder,
-  ): Promise<UploadResult> {
+  ): Promise<IUploadResult> {
     const key = await this.upload('public', folder, file);
 
     return { key, url: this.storage.getPublicUrl(key) };
@@ -31,7 +31,7 @@ export class UploadsService {
   async uploadDocument(
     file: Express.Multer.File,
     folder: TDocumentFolder,
-  ): Promise<UploadResult> {
+  ): Promise<IUploadResult> {
     const key = await this.upload('documents', folder, file);
 
     return { key, url: await this.storage.getSignedUrl('documents', key) };

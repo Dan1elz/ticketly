@@ -6,7 +6,7 @@ import { AdminRepository } from '../admins/admins.repository';
 import { Admin } from '../admins/entities/admin.entity';
 import { InvalidCredentialsException } from './auth.exceptions';
 import { LoginDto } from './dto/login.dto';
-import type { JwtPayload } from './interfaces/authenticated-request.interface';
+import type { IJwtPayload } from './interfaces/authenticated-request.interface';
 
 // Hash qualquer: quando o e-mail não existe, comparamos com ele mesmo assim,
 // pra resposta demorar igual e não denunciar quais e-mails estão cadastrados
@@ -38,7 +38,7 @@ export class AuthService {
     admin.lastLoginAt = new Date();
     await this.adminRepository.saveChanges();
 
-    const payload: JwtPayload = { sub: admin.id };
+    const payload: IJwtPayload = { sub: admin.id };
 
     return {
       accessToken: await this.jwtService.signAsync(payload),

@@ -9,7 +9,7 @@ export type TPublicFolder = TUploadFolders['public'];
 export type TDocumentFolder = TUploadFolders['documents'];
 export type TUploadFolder<B extends TBucket = TBucket> = TUploadFolders[B];
 
-export interface UploadResult {
+export interface IUploadResult {
   key: string;
   url: string;
 }

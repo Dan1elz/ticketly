@@ -8,25 +8,11 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { Artist } from '../../artists/entities/artist.entity';
 import { BaseEntity } from '../../common/entities/base.entity';
-import type { LineupItemDto } from '../dto/lineup-item.dto';
+import { ELineupStatus } from '../enums/lineup-status.enum';
+import { EPerformanceType } from '../enums/performance-type.enum';
+import type { ILineupItemData } from '../events.types';
+import { EventStage } from './event-stage.entity';
 import { Event } from './event.entity';
-
-export enum PerformanceType {
-  HEADLINER = 'HEADLINER',
-  SUPPORT = 'SUPPORT',
-  DJ = 'DJ',
-}
-
-export enum LineupStatus {
-  CONFIRMED = 'CONFIRMED',
-  CANCELLED = 'CANCELLED',
-}
-
-export type LineupData = Omit<LineupItemDto, 'artistId' | 'artist'>;
-
-export interface LineupEntry extends LineupData {
-  artist: Artist;
-}
 
 @Entity({ tableName: 'event_lineup' })
 @Unique({ properties: ['event', 'artist'] })
@@ -37,15 +23,16 @@ export class EventLineup extends BaseEntity {
   @ManyToOne(() => Artist, { deleteRule: 'restrict' })
   artist: Artist;
 
-  @Property({ type: 'string', length: 100, default: 'Main Stage' })
-  stage: Opt<string> = 'Main Stage';
+  // RESTRICT: palco com artista no lineup não pode ser apagado
+  @ManyToOne(() => EventStage, { deleteRule: 'restrict' })
+  stage: Rel<EventStage>;
 
   @Enum({
-    items: () => PerformanceType,
+    items: () => EPerformanceType,
     nativeEnumName: 'performance_type',
-    default: PerformanceType.HEADLINER,
+    default: EPerformanceType.HEADLINER,
   })
-  performanceType: Opt<PerformanceType> = PerformanceType.HEADLINER;
+  performanceType: Opt<EPerformanceType> = EPerformanceType.HEADLINER;
 
   @Property({ type: 'datetime', nullable: true })
   startTime: Opt<Date> | null = null;
@@ -57,14 +44,14 @@ export class EventLineup extends BaseEntity {
   displayOrder: Opt<number> = 1;
 
   @Enum({
-    items: () => LineupStatus,
+    items: () => ELineupStatus,
     nativeEnumName: 'lineup_status',
-    default: LineupStatus.CONFIRMED,
+    default: ELineupStatus.CONFIRMED,
   })
-  status: Opt<LineupStatus> = LineupStatus.CONFIRMED;
+  status: Opt<ELineupStatus> = ELineupStatus.CONFIRMED;
 
-  update(data: LineupData) {
-    this.stage = data.stage;
+  update(stage: EventStage, data: ILineupItemData) {
+    this.stage = stage;
     this.performanceType = data.performanceType;
     this.startTime = data.startTime;
     this.endTime = data.endTime;
@@ -72,12 +59,17 @@ export class EventLineup extends BaseEntity {
     this.status = data.status;
   }
 
-  static create(event: Event, { artist, ...data }: LineupEntry): EventLineup {
+  static create(
+    event: Event,
+    artist: Artist,
+    stage: EventStage,
+    data: ILineupItemData,
+  ): EventLineup {
     const lineup = new EventLineup();
 
     lineup.event = event;
     lineup.artist = artist;
-    lineup.update(data);
+    lineup.update(stage, data);
 
     return lineup;
   }

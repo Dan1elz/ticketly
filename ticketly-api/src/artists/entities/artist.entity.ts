@@ -2,7 +2,7 @@ import { EntityRepositoryType, type Opt } from '@mikro-orm/core';
 import { Entity, Property } from '@mikro-orm/decorators/legacy';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { ArtistRepository } from '../artists.repository';
-import type { CreateArtistDto, SocialLinks } from '../dto/create-artist.dto';
+import type { CreateArtistDto, TSocialLinks } from '../dto/create-artist.dto';
 import type { UpdateArtistDto } from '../dto/update-artist.dto';
 
 @Entity({ tableName: 'artists', repository: () => ArtistRepository })
@@ -28,7 +28,7 @@ export class Artist extends BaseEntity {
   imageUrl: Opt<string>;
 
   @Property({ type: 'json' })
-  socialLinks: Opt<SocialLinks> = {};
+  socialLinks: Opt<TSocialLinks> = {};
 
   @Property({ type: 'boolean', default: true })
   isActive: Opt<boolean> = true;

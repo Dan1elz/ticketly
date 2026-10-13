@@ -15,8 +15,8 @@ import {
 } from '../auth.exceptions';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type {
-  AuthenticatedRequest,
-  JwtPayload,
+  IAuthenticatedRequest,
+  IJwtPayload,
 } from '../interfaces/authenticated-request.interface';
 
 @Injectable()
@@ -36,17 +36,17 @@ export class JwtAuthGuard implements CanActivate {
 
     if (isPublic) return true;
 
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<IAuthenticatedRequest>();
     const token = this.extractToken(request);
 
     if (!token) {
       throw new MissingTokenException();
     }
 
-    let payload: JwtPayload;
+    let payload: IJwtPayload;
 
     try {
-      payload = await this.jwtService.verifyAsync<JwtPayload>(token);
+      payload = await this.jwtService.verifyAsync<IJwtPayload>(token);
     } catch {
       throw new InvalidTokenException();
     }
@@ -61,7 +61,7 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
-  private extractToken(request: AuthenticatedRequest): string | undefined {
+  private extractToken(request: IAuthenticatedRequest): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }
