@@ -1,7 +1,5 @@
 import { z } from "zod"
 
-import { formToArtistPayload, type ArtistFormOutput } from "./artist.schema"
-
 import type {
   IEvent,
   IEventPayload,
@@ -13,25 +11,27 @@ const timeSchema = z
   .string()
   .regex(/^$|^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido")
 
+export const stageItemSchema = z.object({
+  id: z.string().min(1),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Nome do palco é obrigatório")
+    .max(100, "Máximo de 100 caracteres"),
+  description: z.string().trim().max(500, "Máximo de 500 caracteres"),
+})
+
 export const lineupItemSchema = z
   .object({
-    artistId: z.string().nullable(),
-    newArtist: z.custom<ArtistFormOutput>().nullable(),
+    id: z.string().min(1),
+    artistId: z.string().min(1, "Escolha um artista"),
     artistName: z.string(),
     artistImageUrl: z.string(),
-    stage: z
-      .string()
-      .trim()
-      .min(1, "Palco é obrigatório")
-      .max(100, "Máximo de 100 caracteres"),
+    stageId: z.string().min(1, "Escolha o palco"),
     performanceType: z.enum(["HEADLINER", "SUPPORT", "DJ"]),
     startTime: timeSchema,
     endTime: timeSchema,
     status: z.enum(["CONFIRMED", "CANCELLED"]),
-  })
-  .refine((item) => !!item.artistId || !!item.newArtist, {
-    message: "Escolha um artista",
-    path: ["artistName"],
   })
   .refine(
     (item) =>
@@ -39,65 +39,111 @@ export const lineupItemSchema = z
     { message: "Fim igual ao início", path: ["endTime"] }
   )
 
-export const eventSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Nome é obrigatório")
-    .max(160, "Máximo de 160 caracteres"),
-  venue: z
-    .string()
-    .trim()
-    .min(1, "Local é obrigatório")
-    .max(160, "Máximo de 160 caracteres"),
-  date: z.date({ error: "Data é obrigatória" }),
-  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário é obrigatório"),
-  status: z.enum(["DRAFT", "PUBLISHED"]),
-  lineup: z
-    .array(lineupItemSchema)
-    .min(1, "Adicione ao menos um artista")
-    .superRefine((items, ctx) => {
-      const seen = new Set<string>()
+export const eventSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Nome é obrigatório")
+      .max(160, "Máximo de 160 caracteres"),
+    venue: z
+      .string()
+      .trim()
+      .min(1, "Local é obrigatório")
+      .max(160, "Máximo de 160 caracteres"),
+    date: z.date({ error: "Data é obrigatória" }),
+    time: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário é obrigatório"),
+    status: z.enum(["DRAFT", "PUBLISHED"]),
+    stages: z
+      .array(stageItemSchema)
+      .min(1, "Adicione ao menos um palco")
+      .superRefine((items, ctx) => {
+        const seen = new Set<string>()
 
-      items.forEach((item, index) => {
-        const key = item.artistId ?? `new:${item.artistName.toLowerCase()}`
+        items.forEach((item, index) => {
+          const key = item.name.trim().toLowerCase()
 
-        if (seen.has(key)) {
-          ctx.addIssue({
-            code: "custom",
-            message: "Artista repetido no lineup",
-            path: [index, "artistName"],
-          })
-        }
+          if (key && seen.has(key)) {
+            ctx.addIssue({
+              code: "custom",
+              message: "Palco repetido",
+              path: [index, "name"],
+            })
+          }
 
-        seen.add(key)
-      })
-    }),
-})
+          seen.add(key)
+        })
+      }),
+    lineup: z
+      .array(lineupItemSchema)
+      .min(1, "Adicione ao menos um artista")
+      .superRefine((items, ctx) => {
+        const seen = new Set<string>()
 
+        items.forEach((item, index) => {
+          if (item.artistId && seen.has(item.artistId)) {
+            ctx.addIssue({
+              code: "custom",
+              message: "Artista repetido no lineup",
+              path: [index, "artistId"],
+            })
+          }
+
+          seen.add(item.artistId)
+        })
+      }),
+  })
+  .superRefine((data, ctx) => {
+    const stageIds = new Set(data.stages.map((stage) => stage.id))
+
+    data.lineup.forEach((item, index) => {
+      if (item.stageId && !stageIds.has(item.stageId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Esse palco não existe mais: escolha outro",
+          path: ["lineup", index, "stageId"],
+        })
+      }
+    })
+  })
+
+export type StageItemFormData = z.input<typeof stageItemSchema>
 export type LineupItemFormData = z.input<typeof lineupItemSchema>
 export type EventFormData = z.input<typeof eventSchema>
 export type EventFormOutput = z.output<typeof eventSchema>
 
-export const emptyLineupItem: LineupItemFormData = {
-  artistId: null,
-  newArtist: null,
-  artistName: "",
-  artistImageUrl: "",
-  stage: "Main Stage",
-  performanceType: "HEADLINER",
-  startTime: "",
-  endTime: "",
-  status: "CONFIRMED",
+// O id é gerado aqui e vai pra API como chave do palco/do item: precisa ser
+// novo a cada item, nunca reaproveitado entre formulários
+export function newStage(name = ""): StageItemFormData {
+  return { id: crypto.randomUUID(), name, description: "" }
 }
 
-export const emptyEventForm: Partial<EventFormData> = {
-  name: "",
-  venue: "",
-  date: undefined,
-  time: "21:00",
-  status: "DRAFT",
-  lineup: [],
+export function newLineupItem(stageId = ""): LineupItemFormData {
+  return {
+    id: crypto.randomUUID(),
+    artistId: "",
+    artistName: "",
+    artistImageUrl: "",
+    stageId,
+    performanceType: "HEADLINER",
+    startTime: "",
+    endTime: "",
+    status: "CONFIRMED",
+  }
+}
+
+export function newEventForm(): Partial<EventFormData> {
+  return {
+    name: "",
+    venue: "",
+    date: undefined,
+    time: "21:00",
+    status: "DRAFT",
+    stages: [newStage("Palco principal")],
+    lineup: [],
+  }
 }
 
 function toTimeInput(value: string | Date | null): string {
@@ -146,13 +192,18 @@ export function eventToForm(event: IEvent): EventFormData {
     venue: event.venue,
     date: startsAt,
     time: toTimeInput(startsAt),
-    status: event.status,
+    status: event.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT",
+    stages: event.stages.map((stage) => ({
+      id: stage.id,
+      name: stage.name,
+      description: stage.description ?? "",
+    })),
     lineup: event.lineup.map((item) => ({
+      id: item.id,
       artistId: item.artist.id,
-      newArtist: null,
       artistName: item.artist.name,
       artistImageUrl: item.artist.imageUrl,
-      stage: item.stage,
+      stageId: item.stage.id,
       performanceType: item.performanceType,
       startTime: toTimeInput(item.startTime),
       endTime: toTimeInput(item.endTime),
@@ -164,6 +215,13 @@ export function eventToForm(event: IEvent): EventFormData {
 export function formToEventPayload(data: EventFormOutput): IEventPayload {
   const startsAt = atTime(data.date, data.time)
 
+  const stages = data.stages.map((stage, index) => ({
+    id: stage.id,
+    name: stage.name,
+    description: stage.description || null,
+    displayOrder: index + 1,
+  }))
+
   const lineup = data.lineup.map((item, index): ILineupItemPayload => {
     const start = resolveTime(startsAt, item.startTime, startsAt)
     const end = resolveTime(
@@ -173,14 +231,9 @@ export function formToEventPayload(data: EventFormOutput): IEventPayload {
     )
 
     return {
-      ...(item.artistId
-        ? { artistId: item.artistId }
-        : {
-            artist: item.newArtist
-              ? formToArtistPayload(item.newArtist)
-              : undefined,
-          }),
-      stage: item.stage,
+      id: item.id,
+      artistId: item.artistId,
+      stageId: item.stageId,
       performanceType: item.performanceType,
       startTime: start?.toISOString() ?? null,
       endTime: end?.toISOString() ?? null,
@@ -193,6 +246,7 @@ export function formToEventPayload(data: EventFormOutput): IEventPayload {
     name: data.name,
     venue: data.venue,
     startsAt: startsAt.toISOString(),
+    stages,
     lineup,
   }
 }

@@ -27,6 +27,8 @@ export {
   formatCountdown,
 } from "./format.helpers"
 
+export { getReadableTextColor } from "./color.helpers"
+
 export {
   validateCpf,
   validateCnpj,

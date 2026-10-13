@@ -1,12 +1,19 @@
-import type { IArtist, IArtistPayload } from "./artist.interface"
+import type { IArtist } from "./artist.interface"
 
-export type TEventStatus = "DRAFT" | "PUBLISHED"
+export type TEventStatus = "DRAFT" | "PUBLISHED" | "CANCELLED"
 export type TPerformanceType = "HEADLINER" | "SUPPORT" | "DJ"
 export type TLineupStatus = "CONFIRMED" | "CANCELLED"
 
+export interface IEventStage {
+  id: string
+  name: string
+  description: string | null
+  displayOrder: number
+}
+
 export interface ILineupItem {
   id: string
-  stage: string
+  stage: Pick<IEventStage, "id" | "name">
   performanceType: TPerformanceType
   startTime: string | null
   endTime: string | null
@@ -21,15 +28,16 @@ export interface IEvent {
   venue: string
   startsAt: string
   status: TEventStatus
+  stages: IEventStage[]
   lineup: ILineupItem[]
   createdAt: string
   updatedAt: string
 }
 
 export interface ILineupItemPayload {
-  artistId?: string
-  artist?: IArtistPayload
-  stage: string
+  id: string
+  artistId: string
+  stageId: string
   performanceType: TPerformanceType
   startTime: string | null
   endTime: string | null
@@ -41,9 +49,10 @@ export interface IEventPayload {
   name: string
   venue: string
   startsAt: string
+  stages: IEventStage[]
   lineup: ILineupItemPayload[]
 }
 
 export interface IEventUpdatePayload extends Partial<IEventPayload> {
-  status?: TEventStatus
+  status?: Exclude<TEventStatus, "CANCELLED">
 }

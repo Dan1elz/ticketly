@@ -7,6 +7,8 @@ import { ArtistFormPage } from "@/pages/Admin/Artists/Form"
 import { Dashboard } from "@/pages/Admin/Dashboard"
 import { EventList } from "@/pages/Admin/Events"
 import { EventFormPage } from "@/pages/Admin/Events/Form"
+import { SectorsPage } from "@/pages/Admin/Events/Sectors"
+import { SeatsPage } from "@/pages/Admin/Events/Sectors/Seats"
 import { Login } from "@/pages/Admin/Login"
 import { Home } from "@/pages/Home"
 import { NotFound } from "@/pages/NotFound"
@@ -14,6 +16,7 @@ import { ArtistsProvider } from "@/providers/artists.provider"
 import { AuthProvider } from "@/providers/auth.provider"
 import { DashboardProvider } from "@/providers/dashboard.provider"
 import { EventsProvider } from "@/providers/events.provider"
+import { SectorsProvider } from "@/providers/sectors.provider"
 import { PrivateRoutes } from "./PrivateRoutes"
 import { PublicRoutes } from "./PublicRoutes"
 
@@ -50,7 +53,9 @@ function AppRoutes() {
               <DashboardProvider>
                 <ArtistsProvider>
                   <EventsProvider>
-                    <AdminLayout />
+                    <SectorsProvider>
+                      <AdminLayout />
+                    </SectorsProvider>
                   </EventsProvider>
                 </ArtistsProvider>
               </DashboardProvider>
@@ -61,6 +66,8 @@ function AppRoutes() {
           <Route path="shows" element={<EventList />} />
           <Route path="shows/novo" element={<EventFormPage />} />
           <Route path="shows/:id" element={<EventFormPage />} />
+          <Route path="shows/:id/setores" element={<SectorsPage />} />
+          <Route path="shows/:id/setores/:sectorId" element={<SeatsPage />} />
           <Route path="artistas" element={<ArtistList />} />
           <Route path="artistas/novo" element={<ArtistFormPage />} />
           <Route path="artistas/:id" element={<ArtistFormPage />} />

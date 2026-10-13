@@ -18,6 +18,7 @@ export type EventsContextType = {
   selectEvent: (id: string) => Promise<void>
   createEvent: (data: IEventPayload) => Promise<IEvent>
   updateEvent: (id: string, data: IEventUpdatePayload) => Promise<IEvent>
+  cancelEvent: (id: string) => Promise<IEvent>
   deleteEvent: (id: string) => Promise<void>
 }
 

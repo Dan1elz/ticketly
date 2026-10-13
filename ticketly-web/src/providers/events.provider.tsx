@@ -128,6 +128,17 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     [auth, replace]
   )
 
+  const cancelEvent = useCallback(
+    async (id: string) => {
+      const event = await eventService.cancel(id, auth)
+      replace(event)
+
+      lastQueryKey.current = null
+      return event
+    },
+    [auth, replace]
+  )
+
   const deleteEvent = useCallback(
     async (id: string) => {
       await eventService.delete(id, auth)
@@ -149,6 +160,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       selectEvent,
       createEvent,
       updateEvent,
+      cancelEvent,
       deleteEvent,
     }),
     [
@@ -162,6 +174,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       selectEvent,
       createEvent,
       updateEvent,
+      cancelEvent,
       deleteEvent,
     ]
   )

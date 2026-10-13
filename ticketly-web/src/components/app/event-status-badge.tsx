@@ -3,6 +3,10 @@ import { EVENT_STATUS_LABELS } from "@/constants"
 import type { TEventStatus } from "@/interfaces"
 
 export function EventStatusBadge({ status }: { status: TEventStatus }) {
+  if (status === "CANCELLED") {
+    return <Badge variant="destructive">{EVENT_STATUS_LABELS[status]}</Badge>
+  }
+
   const published = status === "PUBLISHED"
 
   return (

@@ -14,9 +14,11 @@ export type { ArtistFormData, ArtistFormOutput } from "./artist.schema"
 
 export {
   eventSchema,
+  stageItemSchema,
   lineupItemSchema,
-  emptyEventForm,
-  emptyLineupItem,
+  newEventForm,
+  newStage,
+  newLineupItem,
   eventToForm,
   formToEventPayload,
   formToEventUpdatePayload,
@@ -24,5 +26,38 @@ export {
 export type {
   EventFormData,
   EventFormOutput,
+  StageItemFormData,
   LineupItemFormData,
 } from "./event.schema"
+
+export {
+  sectorSchema,
+  emptySectorForm,
+  sectorToForm,
+  formToSectorPayload,
+  formToSectorUpdatePayload,
+} from "./sector.schema"
+export type { SectorFormData, SectorFormOutput } from "./sector.schema"
+
+export {
+  MAX_SEATS_PER_BLOCK,
+  MAX_QUANTITY_PER_REQUEST,
+  MAX_ADJUST_PER_ACTION,
+  parseRows,
+  seatBlockSchema,
+  emptySeatBlockForm,
+  formToSeatBlockPayload,
+  seatQuantitySchema,
+  formToSeatQuantityPayload,
+  seatNoteSchema,
+  seatAdjustSchema,
+} from "./seat.schema"
+export type {
+  SeatBlockFormData,
+  SeatBlockFormOutput,
+  SeatQuantityFormData,
+  SeatQuantityFormOutput,
+  SeatNoteFormData,
+  SeatAdjustFormData,
+  SeatAdjustFormOutput,
+} from "./seat.schema"

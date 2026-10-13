@@ -1,10 +1,4 @@
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  PencilIcon,
-  SparklesIcon,
-  Trash2Icon,
-} from "lucide-react"
+import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from "lucide-react"
 import {
   Controller,
   useFormContext,
@@ -12,9 +6,7 @@ import {
   useWatch,
 } from "react-hook-form"
 
-import { ArtistAvatar } from "@/components/app/artist-avatar"
 import { ArtistPicker } from "@/components/app/artist-picker"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
@@ -52,19 +44,25 @@ export function LineupItem({
   const { control, register, setValue } = useFormContext<EventFormData>()
   const { errors: formErrors } = useFormState({ control, name: "lineup" })
   const item = useWatch({ control, name: `lineup.${index}` })
+  const stages = useWatch({ control, name: "stages" })
   const errors = formErrors.lineup?.[index]
 
   const prefix = `lineup-${index}`
-  const isNew = !!item?.newArtist
   const isCancelled = item?.status === "CANCELLED"
+
+  const stageLabels = Object.fromEntries(
+    (stages ?? []).map((stage, position) => [
+      stage.id,
+      stage.name.trim() || `Palco ${position + 1}`,
+    ])
+  )
 
   const pickArtist = (
     artist: { id: string; name: string; imageUrl: string } | null
   ) => {
-    setValue(`lineup.${index}.artistId`, artist?.id ?? null)
-    setValue(`lineup.${index}.newArtist`, null)
+    setValue(`lineup.${index}.artistName`, artist?.name ?? "")
     setValue(`lineup.${index}.artistImageUrl`, artist?.imageUrl ?? "")
-    setValue(`lineup.${index}.artistName`, artist?.name ?? "", {
+    setValue(`lineup.${index}.artistId`, artist?.id ?? "", {
       shouldValidate: true,
     })
   }
@@ -82,60 +80,25 @@ export function LineupItem({
         </span>
 
         <Field
-          data-invalid={!!errors?.artistName}
+          data-invalid={!!errors?.artistId}
           className="min-w-0 flex-1 gap-1.5"
         >
-          {isNew && item.newArtist ? (
-            <div className="flex h-9 items-center gap-2">
-              <ArtistAvatar
-                name={item.newArtist.name}
-                imageUrl={item.newArtist.image?.url}
-                size="sm"
-              />
-              <span className="truncate font-medium">
-                {item.newArtist.name}
-              </span>
-              <Badge variant="secondary" className="gap-1">
-                <SparklesIcon />
-                Novo
-              </Badge>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Editar artista novo"
-                onClick={() => onCreateArtist(index)}
-              >
-                <PencilIcon />
-              </Button>
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => pickArtist(null)}
-              >
-                Trocar
-              </Button>
-            </div>
-          ) : (
-            <ArtistPicker
-              id={`${prefix}-artist`}
-              value={
-                item?.artistId
-                  ? {
-                      id: item.artistId,
-                      name: item.artistName,
-                      imageUrl: item.artistImageUrl,
-                    }
-                  : null
-              }
-              onChange={pickArtist}
-              onCreateNew={() => onCreateArtist(index)}
-              invalid={!!errors?.artistName}
-            />
-          )}
-          <FieldError errors={[errors?.artistName]} />
+          <ArtistPicker
+            id={`${prefix}-artist`}
+            value={
+              item?.artistId
+                ? {
+                    id: item.artistId,
+                    name: item.artistName,
+                    imageUrl: item.artistImageUrl,
+                  }
+                : null
+            }
+            onChange={pickArtist}
+            onCreateNew={() => onCreateArtist(index)}
+            invalid={!!errors?.artistId}
+          />
+          <FieldError errors={[errors?.artistId]} />
         </Field>
 
         <ButtonGroup>
@@ -197,17 +160,37 @@ export function LineupItem({
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
         <Field
-          data-invalid={!!errors?.stage}
+          data-invalid={!!errors?.stageId}
           className="col-span-2 gap-1.5 md:col-span-1"
         >
           <FieldLabel htmlFor={`${prefix}-stage`}>Palco</FieldLabel>
-          <Input
-            id={`${prefix}-stage`}
-            placeholder="Main Stage"
-            aria-invalid={!!errors?.stage}
-            {...register(`lineup.${index}.stage`)}
+          <Controller
+            control={control}
+            name={`lineup.${index}.stageId`}
+            render={({ field }) => (
+              <Select
+                items={stageLabels}
+                value={field.value || null}
+                onValueChange={(value) => field.onChange(value ?? "")}
+              >
+                <SelectTrigger
+                  id={`${prefix}-stage`}
+                  className="w-full"
+                  aria-invalid={!!errors?.stageId}
+                >
+                  <SelectValue placeholder="Escolha o palco" />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {Object.entries(stageLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           />
-          <FieldError errors={[errors?.stage]} />
+          <FieldError errors={[errors?.stageId]} />
         </Field>
 
         <Field className="gap-1.5">

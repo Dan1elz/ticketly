@@ -102,7 +102,9 @@ A expiração é feita por um job que olha `orders.expires_at` no Postgres; o TT
 
 - `DRAFT → PUBLISHED` exige pelo menos 1 assento `AVAILABLE`.
 - Evento com setores não é excluído, é **cancelado** (`CANCELLED`), e só se não houver assento `SOLD` nem `RESERVED`. Na prática: volta pra `DRAFT` (sai da loja), espera as reservas expirarem e cancela.
-- Palcos são cadastrados por evento (`event_stages`) e o lineup escolhe um deles. O assento não se liga a palco.
+- Palcos (`event_stages`) e lineup viajam junto com o evento, no `POST/PATCH /events`. Cada palco e cada item do lineup tem um `id` gerado pelo front; a lista enviada substitui a atual e o `id` identifica o item (atualiza o que existe, cria o novo, remove o que sumiu).
+- O lineup aponta o palco por `stageId` (um palco da mesma lista) e o artista por `artistId`. Artista novo é criado antes, por `POST /artists`.
+- O assento não se liga a palco.
 
 ## Decisões
 
@@ -150,6 +152,7 @@ erDiagram
         uuid id PK
         uuid event_id FK
         text name
+        text description
         int display_order
     }
     artists {
@@ -252,6 +255,7 @@ Regras importantes:
   - `(sector_id, grid_row, grid_column) WHERE status <> 'CANCELLED'`: dois assentos não ocupam o mesmo quadradinho.
 - CHECKs em `seats`: `number > 0`; `grid_row`/`grid_column` os dois juntos ou nenhum; `status_note` obrigatório se `BLOCKED`/`CANCELLED`. Em `sectors`: `price_cents >= 0`; `max_per_order` nulo ou `> 0`.
 - Únicos: `sectors (event_id, name)` e `event_stages (event_id, name)`.
+- Os únicos `event_stages (event_id, name)` e `event_lineup (event_id, artist_id)` são `DEFERRABLE INITIALLY DEFERRED`: o `PATCH` troca a lista inteira, e o `INSERT` de um item novo (id novo para o mesmo artista ou o mesmo nome de palco) pode rodar antes do `DELETE` do antigo.
 - Apagar: `events → sectors → seats` é tudo `RESTRICT` (assento nunca some; o service devolve 409 antes). `event_stages` cai junto com o evento (`CASCADE`), mas palco usado no lineup é `RESTRICT`.
 - `documents` é único por `(order_id, type)`: um pedido tem no máximo uma NF-e e um ingresso.
 - `event_lineup` é único por `(event_id, artist_id)`: o mesmo artista não entra duas vezes no lineup de um evento. Apagar o evento apaga o lineup (`ON DELETE CASCADE`); apagar um artista que está em algum lineup é recusado (`ON DELETE RESTRICT`, a API devolve 409).

@@ -31,9 +31,9 @@ O `event` no `create` do filho é redundante: ao entrar em `this.stages` / `this
 
 ### Front (`ticketly-web`)
 
-- [ ] `pages/Admin/Events/Form/index.tsx`: `saveNewArtist` chama o service de artistas, recebe o `id` e preenche `artistId` do item
-- [ ] `schemas/event.schema.ts`: remover `newArtist`; o refine "Escolha um artista" olha só `artistId`; a chave de repetição deixa de usar `new:${nome}`
-- [ ] `interfaces/event.interface.ts`: remover `artist?: IArtistPayload` do payload do lineup
+- [x] `pages/Admin/Events/Form/index.tsx`: `saveNewArtist` chama o service de artistas, recebe o `id` e preenche `artistId` do item
+- [x] `schemas/event.schema.ts`: remover `newArtist`; o refine "Escolha um artista" olha só `artistId`; a chave de repetição deixa de usar `new:${nome}`
+- [x] `interfaces/event.interface.ts`: remover `artist?: IArtistPayload` do payload do lineup
 
 ### Consequências aceitas
 
@@ -76,9 +76,9 @@ Os dois DTOs de item são `Request` porque servem igual a create e update (o id 
 
 ### Front
 
-- [ ] Gerar o uuid ao adicionar palco e item do lineup
-- [ ] O select de palco do lineup lista os palcos que estão no formulário (ainda não salvos) e guarda o `stageId`
-- [ ] Payload: `stages[]` e `lineup[]` com `id`; o lineup manda `stageId`, não o nome
+- [x] Gerar o uuid ao adicionar palco e item do lineup
+- [x] O select de palco do lineup lista os palcos que estão no formulário (ainda não salvos) e guarda o `stageId`
+- [x] Payload: `stages[]` e `lineup[]` com `id`; o lineup manda `stageId`, não o nome
 
 ### A avaliar na implementação
 
@@ -94,7 +94,29 @@ Dois ajustes que apareceram na verificação:
 - Os únicos `(event_id, name)` do palco e `(event_id, artist_id)` do lineup viraram `DEFERRABLE INITIALLY DEFERRED` (migration `20261012235500`). Sem isso, remover um artista e adicioná-lo de novo no mesmo envio (o front gera um id novo) fazia o `INSERT` rodar antes do `DELETE` e violava o único.
 - `Event.setLineup` atribui o palco a partir de `this.stages` (buscado pelo `stageId`), em vez de uma referência solta, porque o palco pode ter sido criado no mesmo envio.
 
-Migrations novas (rodar `npm run migration:up`): `20261012235000` (coluna `description`) e `20261012235500` (únicos adiáveis).
+Migrations novas: `20261012235000` (coluna `description`) e `20261012235500` (únicos adiáveis). Aplicadas no banco de desenvolvimento junto com as 3 do colega, e o `db:seed` foi rodado (9 shows, 19 setores, 5.156 assentos).
+
+### Feito em 2026-10-12 (front)
+
+O formulário de show manda o contrato novo (`ticketly-web/src/schemas/event.schema.ts`):
+
+- `newStage()` e `newLineupItem()` geram o uuid; ao editar, o `id` que veio da API é reaproveitado.
+- Remover um palco que o lineup do formulário usa pede confirmação e deixa os itens sem palco (o select fica vazio e o schema pede para escolher outro).
+- Artista novo: o modal faz o `POST /artists` ao concluir e preenche `artistId` com o `id` devolvido. O texto do modal avisa que o artista fica cadastrado mesmo que o show não seja salvo.
+- Verificado contra a API de desenvolvimento com um script que passa pelos schemas e services do front (criar, editar reaproveitando ids, publicar sem assento, palco em uso, cancelar, excluir). O show de teste foi apagado.
+
+### Feito em 2026-10-12 (`sectors`)
+
+A mesma ideia aplicada ao módulo de setores e assentos: a regra de negócio saiu do service e foi para a entidade.
+
+- [x] `Seat.block`, `unblock` e `cancel` validam a própria transição (`SeatNotAvailableException`, `SeatNotBlockedException`) e recebem o `SeatNoteDto`
+- [x] `Seat.createBlock` e `Seat.createGeneralAdmission` validam o tipo do setor; a pista recebe o `CreateSeatQuantityDto` e o primeiro número (que vem do banco)
+- [x] `Sector.create`/`update` e as ações do assento recusam evento cancelado (`Sector.ensureEventNotCancelled`)
+- [x] `Sector.ensureRemovable()`: setor com assento não se exclui
+- [x] `SectorRepository.existsByEvent` no lugar do `exists` solto no service
+- [x] Interfaces `ISectorData`, `ISectorChanges`, `ISeatBlockData` removidas; sobram `ISeatData` (interna) e `ISeatCounts`
+
+`Sector.create(event, dto)` continua recebendo o `event`: o setor nasce por rota própria, não por dentro do `Event`.
 
 ## 4. Alinhamento ao padrão (visão geral)
 

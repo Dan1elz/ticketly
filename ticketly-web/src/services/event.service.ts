@@ -9,6 +9,15 @@ class EventService extends BaseService<
   constructor() {
     super("events")
   }
+
+  async cancel(id: string, token?: string): Promise<IEvent> {
+    const response = await this.apiService.post<IEvent>(
+      `${this.endpoint}/${id}/cancel`,
+      undefined,
+      token
+    )
+    return response.data
+  }
 }
 
 export const eventService = new EventService()

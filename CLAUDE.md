@@ -28,6 +28,8 @@ Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, 
 
 - `README.md` (raiz): visão geral, repositórios, como rodar, roadmap.
 - `docs/arquitetura.md`: fluxo, decisões, DER.
+- `ticketly-api/docs/arquitetura-api.md`: como o código da API é escrito (camadas, DTO como objeto de transição, entidade rica, ordem dos campos) e o que ainda foge do padrão. Mudou a convenção, atualiza lá.
+- `ticketly-api/docs/correções.md`: correções decididas e ainda não aplicadas, com checklist. Aplicou, marca; entrou no código, apaga o item.
 - `docs/pendencias-api.md`: o que o front já usa e a API ainda não implementou (upload de imagem no storage, `imageKey` em artistas...). Implementou, tira de lá.
 - `docs/decisoes.md`: decisões de mensageria/workers (decisão + porquê + custo), fechadas uma a uma com o Daniel.
 - `docs/mensageria.md`: diagramas Mermaid da topologia do RabbitMQ, retry/DLQ e fluxo do worker. Mudou decisão ou contrato, atualiza os diagramas.

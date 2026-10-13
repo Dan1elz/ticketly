@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import {
+  ArmchairIcon,
+  BanIcon,
   CalendarDaysIcon,
   EllipsisIcon,
   EyeOffIcon,
@@ -69,7 +71,8 @@ import { useEvents } from "@/hooks/use-events"
 import { useListParams } from "@/hooks/use-list-params"
 import type { IEvent, TEventStatus } from "@/interfaces"
 import { cn } from "@/lib/utils"
-import { formatTime, handleError, handleSuccess } from "@/utils"
+import { ApiError } from "@/services"
+import { formatTime, handleError, handleSuccess, handleWarning } from "@/utils"
 
 const COLUMNS = 5
 const MAX_AVATARS = 3
@@ -85,6 +88,7 @@ export function EventList() {
     searchEvents,
     reloadEvents,
     updateEvent,
+    cancelEvent,
     deleteEvent,
   } = useEvents()
   const { getArtist } = useArtists()
@@ -101,6 +105,7 @@ export function EventList() {
 
   const [search, setSearch] = useState(filters.search)
   const [toDelete, setToDelete] = useState<IEvent | null>(null)
+  const [toCancel, setToCancel] = useState<IEvent | null>(null)
   const [filterArtist, setFilterArtist] = useState<TPickedArtist | null>(null)
 
   const updateSearch = useDebouncedCallback((value: string) =>
@@ -141,7 +146,26 @@ export function EventList() {
           : `${event.name} voltou para rascunho`
       )
     } catch (err) {
+      if (err instanceof ApiError && err.isConflict) {
+        handleWarning(
+          `${err.message}. Cadastre um setor e gere os assentos em "Setores e assentos".`
+        )
+        return
+      }
+
       handleError(err, "Não foi possível alterar o status")
+    }
+  }
+
+  const handleCancel = async () => {
+    if (!toCancel) return
+
+    try {
+      await cancelEvent(toCancel.id)
+      handleSuccess(`${toCancel.name} foi cancelado`)
+    } catch (err) {
+      handleError(err, "Não foi possível cancelar o show")
+      throw err
     }
   }
 
@@ -318,20 +342,40 @@ export function EventList() {
                               render={<Link to={`/admin/shows/${event.id}`} />}
                             >
                               <PencilIcon />
-                              Editar
+                              {event.status === "CANCELLED"
+                                ? "Ver detalhes"
+                                : "Editar"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleToggleStatus(event)}
+                              render={
+                                <Link to={`/admin/shows/${event.id}/setores`} />
+                              }
                             >
-                              {event.status === "PUBLISHED" ? (
-                                <EyeOffIcon />
-                              ) : (
-                                <SendIcon />
-                              )}
-                              {event.status === "PUBLISHED"
-                                ? "Voltar para rascunho"
-                                : "Publicar"}
+                              <ArmchairIcon />
+                              Setores e assentos
                             </DropdownMenuItem>
+                            {event.status !== "CANCELLED" && (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleStatus(event)}
+                                >
+                                  {event.status === "PUBLISHED" ? (
+                                    <EyeOffIcon />
+                                  ) : (
+                                    <SendIcon />
+                                  )}
+                                  {event.status === "PUBLISHED"
+                                    ? "Voltar para rascunho"
+                                    : "Publicar"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setToCancel(event)}
+                                >
+                                  <BanIcon />
+                                  Cancelar show
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               variant="destructive"
@@ -366,8 +410,18 @@ export function EventList() {
         open={!!toDelete}
         onOpenChange={(open) => !open && setToDelete(null)}
         title={`Excluir ${toDelete?.name ?? "show"}?`}
-        description="O show e o lineup dele serão apagados. Essa ação não pode ser desfeita."
+        description="O show, os palcos e o lineup serão apagados. Essa ação não pode ser desfeita. Show que já tem setores não pode ser excluído: nesse caso, cancele."
         onConfirm={handleDelete}
+      />
+
+      <ConfirmDialog
+        open={!!toCancel}
+        onOpenChange={(open) => !open && setToCancel(null)}
+        title={`Cancelar ${toCancel?.name ?? "show"}?`}
+        description="O show sai da loja e não pode mais ser alterado nem voltar a ser publicado. Só é possível cancelar se não houver ingresso reservado ou vendido."
+        confirmLabel="Cancelar show"
+        cancelLabel="Voltar"
+        onConfirm={handleCancel}
       />
     </>
   )

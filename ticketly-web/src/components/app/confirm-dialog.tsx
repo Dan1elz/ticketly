@@ -24,6 +24,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = "Excluir",
+  cancelLabel = "Cancelar",
   onConfirm,
 }: {
   open: boolean
@@ -31,6 +32,7 @@ export function ConfirmDialog({
   title: ReactNode
   description: ReactNode
   confirmLabel?: string
+  cancelLabel?: string
   onConfirm: () => Promise<void>
 }) {
   const [loading, setLoading] = useState(false)
@@ -62,7 +64,9 @@ export function ConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading}>
+            {cancelLabel}
+          </AlertDialogCancel>
           <Button
             variant="destructive"
             onClick={handleConfirm}

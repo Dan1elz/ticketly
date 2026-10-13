@@ -23,13 +23,18 @@ const SEGMENT_LABELS: Record<string, string> = {
   shows: "Shows",
   artistas: "Artistas",
   novo: "Novo",
+  setores: "Setores",
 }
 
 function getCrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean)
 
+  // O id depois de "setores" é o setor: a tela dele é o mapa de assentos
+  const idLabel = (index: number) =>
+    segments[index - 1] === "setores" ? "Assentos" : "Editar"
+
   return segments.map((segment, index) => ({
-    label: SEGMENT_LABELS[segment] ?? "Editar",
+    label: SEGMENT_LABELS[segment] ?? idLabel(index),
     url: `/${segments.slice(0, index + 1).join("/")}`,
   }))
 }

@@ -9,25 +9,31 @@ Front do [Ticketly](../README.md). Tem duas áreas no mesmo app:
 
 ## Telas planejadas
 
-| Rota                                          | Tela                                        | Status                             |
-| --------------------------------------------- | ------------------------------------------- | ---------------------------------- |
-| `/`                                           | Lista de shows                              | Placeholder "em desenvolvimento"   |
-| `/shows/:id`                                  | Mapa de assentos + reserva                  | A fazer                            |
-| `/checkout/:reservationCode`                  | Dados do cliente + cronômetro de 10 min     | A fazer                            |
-| `/pedido/:reservationCode`                    | Status do pedido em tempo real              | A fazer                            |
-| `/admin/login`                                | Login do admin                              | Feita                              |
-| `/admin`                                      | Dashboard (totais + próximos shows)         | Feita                              |
-| `/admin/shows`                                | Listagem de shows (busca, status, artista)  | Feita                              |
-| `/admin/shows/novo`, `/admin/shows/:id`       | Formulário do show + lineup                 | Feita (setores e assentos a fazer) |
-| `/admin/artistas`                             | Listagem de artistas (busca, ativo/inativo) | Feita                              |
-| `/admin/artistas/novo`, `/admin/artistas/:id` | Formulário do artista                       | Feita                              |
-| `/admin/pedidos`                              | Pedidos e a etapa em que cada um está       | A fazer                            |
+| Rota                                          | Tela                                        | Status                           |
+| --------------------------------------------- | ------------------------------------------- | -------------------------------- |
+| `/`                                           | Lista de shows                              | Placeholder "em desenvolvimento" |
+| `/shows/:id`                                  | Mapa de assentos + reserva                  | A fazer                          |
+| `/checkout/:reservationCode`                  | Dados do cliente + cronômetro de 10 min     | A fazer                          |
+| `/pedido/:reservationCode`                    | Status do pedido em tempo real              | A fazer                          |
+| `/admin/login`                                | Login do admin                              | Feita                            |
+| `/admin`                                      | Dashboard (totais + próximos shows)         | Feita                            |
+| `/admin/shows`                                | Listagem de shows (busca, status, artista)  | Feita                            |
+| `/admin/shows/novo`, `/admin/shows/:id`       | Formulário do show: palcos + lineup         | Feita                            |
+| `/admin/shows/:id/setores`                    | Setores do show: preço, cor, contadores     | Feita                            |
+| `/admin/shows/:id/setores/:sectorId`          | Mapa de assentos (ou pista) e ações         | Feita                            |
+| `/admin/artistas`                             | Listagem de artistas (busca, ativo/inativo) | Feita                            |
+| `/admin/artistas/novo`, `/admin/artistas/:id` | Formulário do artista                       | Feita                            |
+| `/admin/pedidos`                              | Pedidos e a etapa em que cada um está       | A fazer                          |
 
 O `AuthProvider` envolve só as rotas `/admin`, então a loja nunca espera validação de token.
 
 Páginas e componentes **nunca chamam service direto**: usam o hook do recurso (`useArtists()`, `useEvents()`...), que lê o contexto. O provider guarda o que já foi carregado — abrir a edição a partir da lista ou voltar pra lista com os mesmos filtros não faz requisição nova.
 
-A foto do artista é enviada pro storage S3 (bucket `ticketly-public`) via `POST /uploads/images` assim que o arquivo é escolhido; o formulário guarda só a chave. O que a API ainda precisa implementar pra isso está em [`docs/pendencias-api.md`](../docs/pendencias-api.md).
+A foto do artista é enviada pro storage S3 (bucket `ticketly-public`) via `POST /uploads/artist-image` assim que o arquivo é escolhido; o formulário guarda só a chave. O que a API ainda precisa implementar pra isso está em [`docs/pendencias-api.md`](../docs/pendencias-api.md).
+
+O show é salvo de uma vez só (`POST`/`PATCH /events` com `stages` e `lineup`); palco e item do lineup ganham o `id` (uuid) no próprio formulário. Artista novo é a exceção: é cadastrado na hora em que o modal é concluído e o formulário usa o `id` devolvido.
+
+Setores e assentos moram numa área própria, a partir do show salvo: o show só pode ser publicado com ao menos um ingresso disponível, e cancelar um show (em vez de excluir) é o que tira ele da loja de vez. Nos assentos, o mapa permite selecionar vários e aplicar bloquear, desbloquear ou cancelar; como a API muda um assento por requisição, o front faz as chamadas em sequência e informa quantas deram certo.
 
 Nas listagens, página e filtros ficam na URL (`?search=...&status=...&page=2`): dá pra recarregar ou compartilhar o link sem perder a busca.
 
@@ -42,7 +48,7 @@ src/
     app/        componentes do app: layouts (loja e admin), sidebar, formulário
                 de artista, seletores, paginação, estados de lista...
   services/     chamadas HTTP pra API (um service por recurso, estendendo o BaseService)
-  providers/    estado + ações de cada recurso (Auth, Artists, Events, Dashboard, Theme)
+  providers/    estado + ações de cada recurso (Auth, Artists, Events, Sectors, Dashboard, Theme)
   contexts/     tipo de cada contexto
   hooks/        use-<recurso> (acesso ao contexto), use-list-params, use-debounced-callback
   schemas/      validações com Zod + conversão formulário <-> payload da API

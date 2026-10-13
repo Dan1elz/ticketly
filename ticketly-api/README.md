@@ -32,6 +32,8 @@ API principal do [Ticketly](../README.md). É o único serviço com banco de dad
 
 Padrão de cada módulo: `controller → service → repository`, DTOs validados com `nestjs-zod` (o schema de resposta com `@ZodResponse` faz o papel do mapper), erros com as exceções do Nest (`NotFoundException`, `ConflictException`...).
 
+Convenções de código (o DTO como objeto de transição entre as camadas, entidade rica, ordem dos campos) em [docs/arquitetura-api.md](docs/arquitetura-api.md); o que ainda falta alinhar em [docs/correções.md](docs/correções.md).
+
 Rotas `GET` do catálogo (`/events`, `/events/:id/sectors`, `/sectors/:id`) são públicas: sem token (loja) só mostram shows `PUBLISHED`; com o token do admin mostram tudo.
 
 ## Eventos
@@ -58,6 +60,13 @@ Criar as tabelas e o primeiro admin (com o Postgres de pé):
 ```bash
 npm run migration:up
 npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD) + 15 artistas e 8 shows de exemplo, com setores e assentos
+```
+
+Com a API no Docker, as migrations e o seed rodam **dentro do container** (o `Dockerfile.development` só sobe o `start:dev`):
+
+```bash
+docker compose -f compose.development.yaml exec api npm run migration:up
+docker compose -f compose.development.yaml exec api npm run db:seed
 ```
 
 - Swagger: http://localhost:3000/docs — faça login em `POST /admin/auth/login` e cole o `accessToken` em **Authorize**.
