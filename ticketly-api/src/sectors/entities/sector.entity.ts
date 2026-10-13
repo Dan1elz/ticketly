@@ -9,13 +9,13 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Event } from '../../events/entities/event.entity';
+import { EventCancelledException } from '../../events/events.exceptions';
+import type { CreateSectorDto } from '../dto/create-sector.dto';
+import type { UpdateSectorDto } from '../dto/update-sector.dto';
 import { ESectorType } from '../enums/sector-type.enum';
+import { SectorHasSeatsException } from '../sectors.exceptions';
 import { SectorRepository } from '../sectors.repository';
-import type {
-  ISeatCounts,
-  ISectorChanges,
-  ISectorData,
-} from '../sectors.types';
+import type { ISeatCounts } from '../sectors.types';
 
 @Entity({ tableName: 'sectors', repository: () => SectorRepository })
 @Unique({ properties: ['event', 'name'] })
@@ -26,10 +26,6 @@ import type {
 })
 export class Sector extends BaseEntity {
   [EntityRepositoryType]?: SectorRepository;
-
-  // RESTRICT: evento com setor não é apagado (o service devolve 409 antes)
-  @ManyToOne(() => Event, { deleteRule: 'restrict' })
-  event: Rel<Event>;
 
   @Property({ type: 'string', length: 100 })
   name: string;
@@ -59,11 +55,17 @@ export class Sector extends BaseEntity {
   @Property({ type: 'json', persist: false })
   seatCounts: Opt<ISeatCounts>;
 
+  // RESTRICT: evento com setor não é apagado (o service devolve 409 antes)
+  @ManyToOne(() => Event, { deleteRule: 'restrict' })
+  event: Rel<Event>;
+
   get isSeated(): boolean {
     return this.type === ESectorType.SEATED;
   }
 
-  update(data: ISectorChanges) {
+  update(data: UpdateSectorDto) {
+    this.ensureEventNotCancelled();
+
     if (data.name !== undefined) this.name = data.name;
     if (data.description !== undefined) this.description = data.description;
     if (data.priceCents !== undefined) this.priceCents = data.priceCents;
@@ -72,7 +74,25 @@ export class Sector extends BaseEntity {
     if (data.maxPerOrder !== undefined) this.maxPerOrder = data.maxPerOrder;
   }
 
-  static create(event: Event, data: ISectorData): Sector {
+  // Assento nunca é excluído, então setor com assento também não
+  ensureRemovable() {
+    if (this.seatCounts.total > 0) {
+      throw new SectorHasSeatsException();
+    }
+  }
+
+  // Evento cancelado não muda mais: vale pro setor e pros assentos dele
+  ensureEventNotCancelled() {
+    if (this.event.isCancelled) {
+      throw new EventCancelledException();
+    }
+  }
+
+  static create(event: Event, data: CreateSectorDto): Sector {
+    if (event.isCancelled) {
+      throw new EventCancelledException();
+    }
+
     const sector = new Sector();
 
     sector.event = event;

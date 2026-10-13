@@ -14,7 +14,6 @@ import {
 import { ApiBearerAuth, ApiNoContentResponse, ApiTags } from '@nestjs/swagger';
 import { ZodResponse } from 'nestjs-zod';
 import {
-  ArtistImageNotFoundException,
   ArtistInactiveException,
   ArtistNotFoundException,
 } from '../artists/artists.exceptions';
@@ -27,6 +26,7 @@ import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import {
   EventCancelledException,
+  EventConflictException,
   EventHasActiveSeatsException,
   EventHasSectorsException,
   EventNotFoundException,
@@ -54,7 +54,8 @@ export class EventsController {
     HttpStatus.BAD_REQUEST,
     ArtistNotFoundException,
     ArtistInactiveException,
-    ArtistImageNotFoundException,
+    StageNotFoundException,
+    EventConflictException,
   )
   create(@Body() dto: CreateEventDto) {
     return this.eventsService.create(dto);
@@ -97,7 +98,7 @@ export class EventsController {
     StageInUseException,
     ArtistNotFoundException,
     ArtistInactiveException,
-    ArtistImageNotFoundException,
+    EventConflictException,
   )
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateEventDto) {
     return this.eventsService.update(id, dto);

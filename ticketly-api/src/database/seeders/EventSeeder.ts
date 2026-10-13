@@ -1,9 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import type { EntityManager } from '@mikro-orm/postgresql';
 import { Seeder } from '@mikro-orm/seeder';
 import { Artist } from '../../artists/entities/artist.entity';
 import { Event } from '../../events/entities/event.entity';
 import { ELineupStatus } from '../../events/enums/lineup-status.enum';
-import type { ILineupEntry } from '../../events/events.types';
+import type { CreateEventDto } from '../../events/dto/create-event.dto';
 import { ArtistSeeder } from './ArtistSeeder';
 import { EVENTS, type IEventSeed } from './data/events.data';
 
@@ -39,18 +40,31 @@ export class EventSeeder extends Seeder {
   }
 
   private buildEvent(seed: IEventSeed, artistsByName: Map<string, Artist>) {
-    const lineup = seed.lineup.map((item, index): ILineupEntry => {
-      const artist = artistsByName.get(item.artist);
+    // Palcos saem dos nomes usados no lineup, na ordem em que aparecem
+    const stages = [
+      ...new Set(seed.lineup.map((item) => item.stage ?? DEFAULT_STAGE)),
+    ].map((name, index) => ({
+      id: randomUUID(),
+      name,
+      description: null,
+      displayOrder: index + 1,
+    }));
+    const stageIds = new Map(stages.map((stage) => [stage.name, stage.id]));
 
-      if (!artist) {
+    const lineup = seed.lineup.map((item, index) => {
+      const artist = artistsByName.get(item.artist);
+      const stageId = stageIds.get(item.stage ?? DEFAULT_STAGE);
+
+      if (!artist || !stageId) {
         throw new Error(
           `Show "${seed.name}": artista "${item.artist}" não existe`,
         );
       }
 
       return {
-        artist,
-        stage: item.stage ?? DEFAULT_STAGE,
+        id: randomUUID(),
+        artistId: artist.id,
+        stageId,
         performanceType: item.performanceType,
         startTime: item.startTime,
         endTime: item.endTime,
@@ -59,16 +73,14 @@ export class EventSeeder extends Seeder {
       };
     });
 
-    // Palcos saem dos nomes usados no lineup, na ordem em que aparecem
-    const stages = [...new Set(lineup.map((item) => item.stage))].map(
-      (name, index) => ({ name, displayOrder: index + 1 }),
-    );
-
-    const event = Event.create(
-      { name: seed.name, venue: seed.venue, startsAt: seed.startsAt },
+    const dto: CreateEventDto = {
+      name: seed.name,
+      venue: seed.venue,
+      startsAt: seed.startsAt,
       stages,
       lineup,
-    );
+    };
+    const event = Event.create(dto);
     event.status = seed.status;
 
     return event;

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UniqueConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 import {
@@ -6,24 +7,21 @@ import {
   ArtistNotFoundException,
 } from '../artists/artists.exceptions';
 import { ArtistsService } from '../artists/artists.service';
-import { Artist } from '../artists/entities/artist.entity';
 import type { IPaginated } from '../common/repositories/base.repository';
 import { SectorsService } from '../sectors/sectors.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import type { LineupItemDto } from './dto/lineup-item.dto';
+import type { EventLineupRequestDto } from './dto/event-lineup-request.dto';
 import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { EEventStatus } from './enums/event-status.enum';
-import type { ILineupEntry } from './events.types';
 import { Event } from './entities/event.entity';
 import {
   EventCancelledException,
+  EventConflictException,
   EventHasActiveSeatsException,
   EventHasSectorsException,
   EventNotFoundException,
   EventWithoutAvailableSeatsException,
-  StageInUseException,
-  StageNotFoundException,
 } from './events.exceptions';
 import { EventRepository } from './events.repository';
 
@@ -36,14 +34,15 @@ export class EventsService {
     private readonly sectorsService: SectorsService,
   ) {}
 
-  // Evento, artistas novos e lineup vão no mesmo flush = mesma transação:
+  // Evento, palcos e lineup vão no mesmo flush = mesma transação:
   // ou salva tudo, ou nada
   async create(dto: CreateEventDto): Promise<Event> {
-    const lineup = await this.resolveLineup(dto.lineup);
-    const event = Event.create(dto, dto.stages, lineup);
+    await this.ensureArtistsAvailable(dto.lineup);
+
+    const event = Event.create(dto);
 
     this.eventRepository.add(event);
-    await this.eventRepository.saveChanges();
+    await this.saveChanges();
 
     return event;
   }
@@ -88,22 +87,21 @@ export class EventsService {
       throw new EventCancelledException();
     }
 
-    this.ensureStagesMatchLineup(event, dto);
-
     if (dto.status === EEventStatus.PUBLISHED && !event.isPublished) {
       await this.ensureHasAvailableSeats(event.id);
     }
 
-    const currentArtistIds = new Set(
-      event.lineup.getItems().map((item) => item.artist.id),
-    );
-    const lineup = dto.lineup
-      ? await this.resolveLineup(dto.lineup, currentArtistIds)
-      : undefined;
+    if (dto.lineup) {
+      const currentArtistIds = new Set(
+        event.lineup.getItems().map((item) => item.artist.id),
+      );
 
-    event.update(dto, dto.stages, lineup);
+      await this.ensureArtistsAvailable(dto.lineup, currentArtistIds);
+    }
 
-    await this.eventRepository.saveChanges();
+    event.update(dto);
+
+    await this.saveChanges();
 
     return event;
   }
@@ -151,62 +149,40 @@ export class EventsService {
     }
   }
 
-  // Com as duas listas no PATCH, o DTO já conferiu. Com só uma, a outra vem do
-  // banco: lineup novo precisa usar palcos que existem, e palco que saiu da
-  // lista não pode estar no lineup atual
-  private ensureStagesMatchLineup(event: Event, dto: UpdateEventDto) {
-    if (dto.lineup && !dto.stages) {
-      const names = event.stageNames();
-
-      if (dto.lineup.some((item) => !names.has(item.stage))) {
-        throw new StageNotFoundException();
-      }
-    }
-
-    if (dto.stages && !dto.lineup) {
-      const names = new Set(dto.stages.map((stage) => stage.name));
-      const inUse = event.lineup
-        .getItems()
-        .some((item) => !names.has(item.stage.name));
-
-      if (inUse) {
-        throw new StageInUseException();
-      }
-    }
-  }
-
-  // Cada item traz um artistId (busca no banco) ou um artist (cria um novo).
-  // Artista desativado não entra em evento, mas continua nos que já estava
-  private async resolveLineup(
-    items: LineupItemDto[],
+  // Todo artista do lineup tem que existir. Artista desativado não entra em
+  // evento, mas continua nos que já estava
+  private async ensureArtistsAvailable(
+    items: EventLineupRequestDto[],
     currentArtistIds = new Set<string>(),
-  ): Promise<ILineupEntry[]> {
-    const [existing] = await Promise.all([
-      this.artistsService.findByIds(
-        items.flatMap((item) => item.artistId ?? []),
-      ),
-      ...items.flatMap((item) =>
-        item.artist
-          ? [this.artistsService.ensureImageExists(item.artist.imageKey)]
-          : [],
-      ),
-    ]);
-    const artistsById = new Map(existing.map((artist) => [artist.id, artist]));
+  ) {
+    const artists = await this.artistsService.findByIds(
+      items.map((item) => item.artistId),
+    );
+    const artistsById = new Map(artists.map((artist) => [artist.id, artist]));
 
-    return items.map(({ artistId, artist: newArtist, ...data }) => {
-      const artist = artistId
-        ? artistsById.get(artistId)
-        : newArtist && Artist.create(newArtist);
+    for (const { artistId } of items) {
+      const artist = artistsById.get(artistId);
 
       if (!artist) {
         throw new ArtistNotFoundException();
       }
 
-      if (!artist.isActive && !currentArtistIds.has(artist.id)) {
+      if (!artist.isActive && !currentArtistIds.has(artistId)) {
         throw new ArtistInactiveException();
       }
+    }
+  }
 
-      return { ...data, artist };
-    });
+  // O id de palco e de lineup vem do front: um id que já existe em outro
+  // evento (ou nome/artista repetido) é barrado pelos únicos do banco
+  private async saveChanges(): Promise<void> {
+    try {
+      await this.eventRepository.saveChanges();
+    } catch (error) {
+      if (error instanceof UniqueConstraintViolationException) {
+        throw new EventConflictException();
+      }
+      throw error;
+    }
   }
 }

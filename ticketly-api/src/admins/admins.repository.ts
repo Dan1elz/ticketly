@@ -2,14 +2,9 @@ import type { FilterQuery } from '@mikro-orm/postgresql';
 import {
   BaseRepository,
   type IPaginated,
-  type IPaginationParams,
 } from '../common/repositories/base.repository';
+import type { ListAdminsQueryDto } from './dto/list-admins-query.dto';
 import { Admin } from './entities/admin.entity';
-
-export interface ISearchAdminsParams extends IPaginationParams {
-  search?: string;
-  isActive?: boolean;
-}
 
 /**
  * O genérico (findOne, exists, paginate...) vem do BaseRepository.
@@ -20,7 +15,7 @@ export class AdminRepository extends BaseRepository<Admin> {
     search,
     isActive,
     ...pagination
-  }: ISearchAdminsParams): Promise<IPaginated<Admin>> {
+  }: ListAdminsQueryDto): Promise<IPaginated<Admin>> {
     const where: FilterQuery<Admin> = {};
 
     if (search) {

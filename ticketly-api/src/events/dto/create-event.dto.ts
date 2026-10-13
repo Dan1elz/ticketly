@@ -1,8 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { dateTimeSchema } from '../../common/zod/schemas';
-import { lineupSchema } from './lineup-item.dto';
-import { stagesSchema } from './stage-item.dto';
+import { eventLineupSchema } from './event-lineup-request.dto';
+import { eventStagesSchema } from './event-stage-request.dto';
 
 const requiredText = (label: string, max: number) =>
   z
@@ -18,23 +18,23 @@ export const eventBaseSchema = z.strictObject({
   }),
   venue: requiredText('Local', 160).meta({ example: 'Allianz Parque' }),
   startsAt: dateTimeSchema.meta({ example: '2026-12-20T21:00:00.000Z' }),
-  stages: stagesSchema,
-  lineup: lineupSchema,
+  stages: eventStagesSchema,
+  lineup: eventLineupSchema,
 });
 
-// Cada item do lineup precisa apontar pra um palco da lista `stages`.
-// Se só uma das listas vier (PATCH), quem confere é o service, com o banco
+// Com as duas listas no payload, cada item do lineup tem que apontar pra um
+// palco da lista `stages`. Se só uma vier (PATCH), quem confere é o Event
 export const lineupStagesMatch = ({
   stages,
   lineup,
 }: {
-  stages?: { name: string }[];
-  lineup?: { stage: string }[];
+  stages?: { id: string }[];
+  lineup?: { stageId: string }[];
 }) => {
   if (!stages || !lineup) return true;
 
-  const names = new Set(stages.map((stage) => stage.name));
-  return lineup.every((item) => names.has(item.stage));
+  const ids = new Set(stages.map((stage) => stage.id));
+  return lineup.every((item) => ids.has(item.stageId));
 };
 
 export const lineupStageError = {

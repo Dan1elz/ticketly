@@ -3,10 +3,7 @@ import { UniqueConstraintViolationException } from '@mikro-orm/postgresql';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 import { Event } from '../events/entities/event.entity';
-import {
-  EventCancelledException,
-  EventNotFoundException,
-} from '../events/events.exceptions';
+import { EventNotFoundException } from '../events/events.exceptions';
 import { EventRepository } from '../events/events.repository';
 import { CreateSectorDto } from './dto/create-sector.dto';
 import { UpdateSectorDto } from './dto/update-sector.dto';
@@ -14,7 +11,6 @@ import { Seat } from './entities/seat.entity';
 import { Sector } from './entities/sector.entity';
 import { SeatRepository } from './seats.repository';
 import {
-  SectorHasSeatsException,
   SectorNameAlreadyExistsException,
   SectorNotFoundException,
 } from './sectors.exceptions';
@@ -34,9 +30,6 @@ export class SectorsService {
 
   async create(eventId: string, dto: CreateSectorDto): Promise<Sector> {
     const event = await this.findEvent(eventId);
-
-    this.ensureEventNotCancelled(event);
-
     const sector = Sector.create(event, dto);
 
     this.sectorRepository.add(sector);
@@ -91,21 +84,16 @@ export class SectorsService {
   async update(id: string, dto: UpdateSectorDto): Promise<Sector> {
     const sector = await this.findOne(id);
 
-    this.ensureEventNotCancelled(sector.event);
-
     sector.update(dto);
     await this.saveChanges();
 
     return sector;
   }
 
-  // Assento nunca é excluído, então setor com assento também não
   async remove(id: string): Promise<void> {
     const sector = await this.findOne(id);
 
-    if (sector.seatCounts.total > 0) {
-      throw new SectorHasSeatsException();
-    }
+    sector.ensureRemovable();
 
     this.sectorRepository.remove(sector);
     await this.saveChanges();
@@ -117,14 +105,7 @@ export class SectorsService {
   }
 
   hasSectors(eventId: string): Promise<boolean> {
-    return this.sectorRepository.exists({ event: eventId });
-  }
-
-  // Usado pelo SeatsService: setor, assento e evento cancelado não mudam mais
-  ensureEventNotCancelled(event: Event) {
-    if (event.isCancelled) {
-      throw new EventCancelledException();
-    }
+    return this.sectorRepository.existsByEvent(eventId);
   }
 
   async loadSeatCounts(sectors: Sector[]): Promise<void> {

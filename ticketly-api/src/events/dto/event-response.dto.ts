@@ -8,6 +8,7 @@ import { EEventStatus } from '../enums/event-status.enum';
 const stageResponseSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  description: z.string().nullable(),
   displayOrder: z.number().int(),
 });
 

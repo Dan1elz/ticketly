@@ -16,6 +16,12 @@ export class EventCancelledException extends ConflictException {
   }
 }
 
+export class EventConflictException extends ConflictException {
+  constructor() {
+    super('Palco ou item do lineup já existe em outro evento ou está repetido');
+  }
+}
+
 export class EventHasSectorsException extends ConflictException {
   constructor() {
     super('Evento com setores não pode ser excluído, só cancelado');

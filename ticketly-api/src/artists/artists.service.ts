@@ -85,7 +85,7 @@ export class ArtistsService {
     }
   }
 
-  async ensureImageExists(key: string): Promise<void> {
+  private async ensureImageExists(key: string): Promise<void> {
     if (!(await this.storage.exists('public', key))) {
       throw new ArtistImageNotFoundException();
     }

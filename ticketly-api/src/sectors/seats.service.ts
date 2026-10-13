@@ -10,12 +10,8 @@ import { Seat } from './entities/seat.entity';
 import { Sector } from './entities/sector.entity';
 import { SeatRepository } from './seats.repository';
 import {
-  SeatNotAvailableException,
-  SeatNotBlockedException,
   SeatNotFoundException,
   SeatPositionTakenException,
-  SectorNotGeneralAdmissionException,
-  SectorNotSeatedException,
 } from './sectors.exceptions';
 import { SectorsService } from './sectors.service';
 
@@ -32,12 +28,7 @@ export class SeatsService {
     sectorId: string,
     dto: CreateSeatBlockDto,
   ): Promise<Sector> {
-    const sector = await this.findEditableSector(sectorId);
-
-    if (!sector.isSeated) {
-      throw new SectorNotSeatedException();
-    }
-
+    const sector = await this.sectorsService.findOne(sectorId);
     const seats = Seat.createBlock(sector, dto);
 
     await this.ensurePositionsFree(sector, seats);
@@ -50,18 +41,9 @@ export class SeatsService {
     sectorId: string,
     dto: CreateSeatQuantityDto,
   ): Promise<Sector> {
-    const sector = await this.findEditableSector(sectorId);
-
-    if (sector.isSeated) {
-      throw new SectorNotGeneralAdmissionException();
-    }
-
+    const sector = await this.sectorsService.findOne(sectorId);
     const firstNumber = (await this.seatRepository.maxNumber(sector.id)) + 1;
-    const seats = Seat.createGeneralAdmission(
-      sector,
-      firstNumber,
-      dto.quantity,
-    );
+    const seats = Seat.createGeneralAdmission(sector, dto, firstNumber);
 
     return this.addSeats(sector, seats);
   }
@@ -76,24 +58,16 @@ export class SeatsService {
   // Se uma reserva pegar o assento entre o findOne e o flush, o bloqueio passa
   // por cima. Quando a reserva existir, trocar por UPDATE condicional
   async block(id: string, dto: SeatNoteDto, admin: Admin): Promise<Seat> {
-    const seat = await this.findEditableSeat(id);
+    const seat = await this.findSeat(id);
 
-    if (!seat.isAvailable) {
-      throw new SeatNotAvailableException();
-    }
-
-    seat.block(dto.note, admin);
+    seat.block(dto, admin);
     await this.seatRepository.saveChanges();
 
     return seat;
   }
 
   async unblock(id: string, admin: Admin): Promise<Seat> {
-    const seat = await this.findEditableSeat(id);
-
-    if (!seat.isBlocked) {
-      throw new SeatNotBlockedException();
-    }
+    const seat = await this.findSeat(id);
 
     seat.unblock(admin);
     await this.seatRepository.saveChanges();
@@ -101,37 +75,11 @@ export class SeatsService {
     return seat;
   }
 
-  // Cancelado é definitivo ("criado indevidamente"): libera a fileira/número
-  // e o quadradinho pra um assento novo
   async cancel(id: string, dto: SeatNoteDto, admin: Admin): Promise<Seat> {
-    const seat = await this.findEditableSeat(id);
+    const seat = await this.findSeat(id);
 
-    if (!seat.isAvailable) {
-      throw new SeatNotAvailableException();
-    }
-
-    seat.cancel(dto.note, admin);
+    seat.cancel(dto, admin);
     await this.seatRepository.saveChanges();
-
-    return seat;
-  }
-
-  private async findEditableSector(id: string): Promise<Sector> {
-    const sector = await this.sectorsService.findOne(id);
-
-    this.sectorsService.ensureEventNotCancelled(sector.event);
-
-    return sector;
-  }
-
-  private async findEditableSeat(id: string): Promise<Seat> {
-    const seat = await this.seatRepository.findByIdWithSector(id);
-
-    if (!seat) {
-      throw new SeatNotFoundException();
-    }
-
-    this.sectorsService.ensureEventNotCancelled(seat.sector.event);
 
     return seat;
   }
@@ -173,5 +121,15 @@ export class SeatsService {
     await this.sectorsService.loadSeatCounts([sector]);
 
     return sector;
+  }
+
+  private async findSeat(id: string): Promise<Seat> {
+    const seat = await this.seatRepository.findByIdWithSector(id);
+
+    if (!seat) {
+      throw new SeatNotFoundException();
+    }
+
+    return seat;
   }
 }

@@ -12,7 +12,16 @@ import { Admin } from '../../admins/entities/admin.entity';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { ESeatStatus } from '../enums/seat-status.enum';
 import { SeatRepository } from '../seats.repository';
-import type { ISeatBlockData, ISeatData } from '../sectors.types';
+import {
+  SeatNotAvailableException,
+  SeatNotBlockedException,
+  SectorNotGeneralAdmissionException,
+  SectorNotSeatedException,
+} from '../sectors.exceptions';
+import type { CreateSeatBlockDto } from '../dto/create-seat-block.dto';
+import type { CreateSeatQuantityDto } from '../dto/create-seat-quantity.dto';
+import type { SeatNoteDto } from '../dto/seat-note.dto';
+import type { ISeatData } from '../sectors.types';
 import { Sector } from './sector.entity';
 
 // Os dois únicos só valem pra assento não cancelado: assim dá pra recriar um
@@ -42,10 +51,6 @@ import { Sector } from './sector.entity';
 })
 export class Seat extends BaseEntity {
   [EntityRepositoryType]?: SeatRepository;
-
-  // RESTRICT: assento nunca some, então setor com assento não é apagado
-  @ManyToOne(() => Sector, { deleteRule: 'restrict' })
-  sector: Rel<Sector>;
 
   // Fileira ("A", "B"...). Null na pista
   @Property({ type: 'string', length: 10, nullable: true })
@@ -78,6 +83,10 @@ export class Seat extends BaseEntity {
   @Property({ type: 'datetime', nullable: true })
   statusChangedAt: Opt<Date> | null = null;
 
+  // RESTRICT: assento nunca some, então setor com assento não é apagado
+  @ManyToOne(() => Sector, { deleteRule: 'restrict' })
+  sector: Rel<Sector>;
+
   // Admin que mudou o status por último. Apagou o admin, fica null
   @ManyToOne(() => Admin, { nullable: true, deleteRule: 'set null' })
   statusChangedBy: Opt<Admin> | null = null;
@@ -90,57 +99,59 @@ export class Seat extends BaseEntity {
     return this.status === ESeatStatus.BLOCKED;
   }
 
-  block(note: string, admin: Admin) {
-    this.changeStatus(ESeatStatus.BLOCKED, note, admin);
+  block(data: SeatNoteDto, admin: Admin) {
+    this.sector.ensureEventNotCancelled();
+
+    if (!this.isAvailable) {
+      throw new SeatNotAvailableException();
+    }
+
+    this.changeStatus(ESeatStatus.BLOCKED, data.note, admin);
   }
 
   unblock(admin: Admin) {
+    this.sector.ensureEventNotCancelled();
+
+    if (!this.isBlocked) {
+      throw new SeatNotBlockedException();
+    }
+
     this.changeStatus(ESeatStatus.AVAILABLE, null, admin);
   }
 
-  cancel(note: string, admin: Admin) {
-    this.changeStatus(ESeatStatus.CANCELLED, note, admin);
-  }
+  // Cancelado é definitivo ("criado indevidamente"): libera a fileira/número
+  // e o quadradinho pra um assento novo
+  cancel(data: SeatNoteDto, admin: Admin) {
+    this.sector.ensureEventNotCancelled();
 
-  private changeStatus(status: ESeatStatus, note: string | null, admin: Admin) {
-    this.status = status;
-    this.statusNote = note;
-    this.statusChangedAt = new Date();
-    this.statusChangedBy = admin;
-  }
+    if (!this.isAvailable) {
+      throw new SeatNotAvailableException();
+    }
 
-  static create(sector: Sector, data: ISeatData): Seat {
-    const seat = new Seat();
-
-    seat.sector = sector;
-    seat.row = data.row;
-    seat.number = data.number;
-    seat.gridRow = data.gridRow;
-    seat.gridColumn = data.gridColumn;
-    seat.isAccessible = data.isAccessible;
-
-    return seat;
+    this.changeStatus(ESeatStatus.CANCELLED, data.note, admin);
   }
 
   // Setor SEATED: um retângulo da grade. Cada fileira vira uma linha e cada
   // número uma coluna. Ex: rows ["A","B"], números 1..10, começando na linha 1
   // e coluna 3 → A1 em (1,3), A10 em (1,12), B1 em (2,3)
-  static createBlock(sector: Sector, block: ISeatBlockData): Seat[] {
+  static createBlock(sector: Sector, data: CreateSeatBlockDto): Seat[] {
+    sector.ensureEventNotCancelled();
+
+    if (!sector.isSeated) {
+      throw new SectorNotSeatedException();
+    }
+
     const seats: Seat[] = [];
 
-    block.rows.forEach((row, rowIndex) => {
-      for (
-        let number = block.numberStart;
-        number <= block.numberEnd;
-        number++
-      ) {
+    data.rows.forEach((row, rowIndex) => {
+      for (let number = data.numberStart; number <= data.numberEnd; number++) {
         seats.push(
           Seat.create(sector, {
             row,
             number,
-            gridRow: block.gridRowStart + rowIndex,
-            gridColumn: block.gridColumnStart + (number - block.numberStart),
-            isAccessible: block.isAccessible,
+            gridRow: data.gridRowStart + rowIndex,
+            gridColumn: data.gridColumnStart + (number - data.numberStart),
+            isAccessible: data.isAccessible,
           }),
         );
       }
@@ -149,15 +160,23 @@ export class Seat extends BaseEntity {
     return seats;
   }
 
-  // Setor GENERAL_ADMISSION (pista): só ingressos numerados, sem fileira nem grade
+  // Setor GENERAL_ADMISSION (pista): só ingressos numerados, sem fileira nem
+  // grade. A numeração continua de onde parou (firstNumber vem do banco)
   static createGeneralAdmission(
     sector: Sector,
+    data: CreateSeatQuantityDto,
     firstNumber: number,
-    quantity: number,
   ): Seat[] {
-    const seats: Seat[] = [];
+    sector.ensureEventNotCancelled();
 
-    for (let number = firstNumber; number < firstNumber + quantity; number++) {
+    if (sector.isSeated) {
+      throw new SectorNotGeneralAdmissionException();
+    }
+
+    const seats: Seat[] = [];
+    const lastNumber = firstNumber + data.quantity;
+
+    for (let number = firstNumber; number < lastNumber; number++) {
       seats.push(
         Seat.create(sector, {
           row: null,
@@ -170,5 +189,25 @@ export class Seat extends BaseEntity {
     }
 
     return seats;
+  }
+
+  private changeStatus(status: ESeatStatus, note: string | null, admin: Admin) {
+    this.status = status;
+    this.statusNote = note;
+    this.statusChangedAt = new Date();
+    this.statusChangedBy = admin;
+  }
+
+  private static create(sector: Sector, data: ISeatData): Seat {
+    const seat = new Seat();
+
+    seat.sector = sector;
+    seat.row = data.row;
+    seat.number = data.number;
+    seat.gridRow = data.gridRow;
+    seat.gridColumn = data.gridColumn;
+    seat.isAccessible = data.isAccessible;
+
+    return seat;
   }
 }

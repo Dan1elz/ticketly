@@ -39,7 +39,7 @@ export class SectorSeeder extends Seeder {
     const sector = Sector.create(event, seed);
     const seats = sector.isSeated
       ? seed.blocks.flatMap((block) => Seat.createBlock(sector, block))
-      : Seat.createGeneralAdmission(sector, 1, seed.quantity);
+      : Seat.createGeneralAdmission(sector, { quantity: seed.quantity }, 1);
 
     em.persist(sector);
     em.persist(seats);

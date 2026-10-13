@@ -2,16 +2,9 @@ import type { FilterQuery } from '@mikro-orm/postgresql';
 import {
   BaseRepository,
   type IPaginated,
-  type IPaginationParams,
 } from '../common/repositories/base.repository';
+import type { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { Event } from './entities/event.entity';
-import { EEventStatus } from './enums/event-status.enum';
-
-export interface ISearchEventsParams extends IPaginationParams {
-  search?: string;
-  artistId?: string;
-  status?: EEventStatus;
-}
 
 export class EventRepository extends BaseRepository<Event> {
   /**
@@ -34,7 +27,7 @@ export class EventRepository extends BaseRepository<Event> {
     status,
     page,
     perPage,
-  }: ISearchEventsParams): Promise<IPaginated<Event>> {
+  }: ListEventsQueryDto): Promise<IPaginated<Event>> {
     const where: FilterQuery<Event> = {};
 
     if (search) {

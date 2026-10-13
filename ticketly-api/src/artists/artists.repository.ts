@@ -2,15 +2,9 @@ import type { FilterQuery } from '@mikro-orm/postgresql';
 import {
   BaseRepository,
   type IPaginated,
-  type IPaginationParams,
 } from '../common/repositories/base.repository';
+import type { ListArtistsQueryDto } from './dto/list-artists-query.dto';
 import { Artist } from './entities/artist.entity';
-
-export interface ISearchArtistsParams extends IPaginationParams {
-  search?: string;
-  genre?: string;
-  isActive?: boolean;
-}
 
 export class ArtistRepository extends BaseRepository<Artist> {
   search({
@@ -18,7 +12,7 @@ export class ArtistRepository extends BaseRepository<Artist> {
     genre,
     isActive,
     ...pagination
-  }: ISearchArtistsParams): Promise<IPaginated<Artist>> {
+  }: ListArtistsQueryDto): Promise<IPaginated<Artist>> {
     const where: FilterQuery<Artist> = {};
 
     if (search) {

@@ -1,23 +1,18 @@
+import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { createArtistSchema } from '../../artists/dto/create-artist.dto';
 import { dateTimeSchema } from '../../common/zod/schemas';
 import { ELineupStatus } from '../enums/lineup-status.enum';
 import { EPerformanceType } from '../enums/performance-type.enum';
-import { stageNameSchema } from './stage-item.dto';
 
-export const lineupItemSchema = z
+export const eventLineupRequestSchema = z
   .strictObject({
-    artistId: z
-      .uuid({ error: 'Artista inválido' })
-      .optional()
-      .meta({ description: 'Artista já cadastrado' }),
-    artist: createArtistSchema
-      .optional()
-      .meta({ description: 'Artista novo, cadastrado junto com o evento' }),
-    stage: stageNameSchema.meta({
-      description: 'Nome de um dos palcos do evento',
-      example: 'Palco Principal',
-    }),
+    id: z
+      .uuid({ error: 'Id do item do lineup inválido' })
+      .meta({ description: 'Gerado pelo front' }),
+    artistId: z.uuid({ error: 'Artista inválido' }),
+    stageId: z
+      .uuid({ error: 'Palco inválido' })
+      .meta({ description: 'Id de um dos palcos do evento' }),
     performanceType: z
       .enum(EPerformanceType)
       .default(EPerformanceType.HEADLINER),
@@ -25,10 +20,6 @@ export const lineupItemSchema = z
     endTime: dateTimeSchema.nullable().default(null),
     displayOrder: z.number().int().min(1).default(1),
     status: z.enum(ELineupStatus).default(ELineupStatus.CONFIRMED),
-  })
-  .refine((item) => !item.artistId !== !item.artist, {
-    error: 'Informe artistId (artista existente) ou artist (artista novo)',
-    path: ['artistId'],
   })
   .refine(
     ({ startTime, endTime }) => !startTime || !endTime || endTime > startTime,
@@ -38,15 +29,17 @@ export const lineupItemSchema = z
     },
   );
 
-export type LineupItemDto = z.output<typeof lineupItemSchema>;
+export class EventLineupRequestDto extends createZodDto(
+  eventLineupRequestSchema,
+) {}
 
-export const lineupSchema = z
-  .array(lineupItemSchema, { error: 'Lineup é obrigatório' })
+export const eventLineupSchema = z
+  .array(eventLineupRequestSchema, { error: 'Lineup é obrigatório' })
   .min(1, 'Informe ao menos um artista')
+  .refine((items) => new Set(items.map((i) => i.id)).size === items.length, {
+    error: 'Id de item do lineup repetido',
+  })
   .refine(
-    (items) => {
-      const ids = items.flatMap((item) => item.artistId ?? []);
-      return new Set(ids).size === ids.length;
-    },
+    (items) => new Set(items.map((i) => i.artistId)).size === items.length,
     { error: 'Artista repetido no lineup' },
   );

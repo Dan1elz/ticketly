@@ -1,4 +1,4 @@
-import type { Opt, Rel } from '@mikro-orm/core';
+import { DeferMode, rel, type Opt, type Rel } from '@mikro-orm/core';
 import {
   Entity,
   Enum,
@@ -8,25 +8,20 @@ import {
 } from '@mikro-orm/decorators/legacy';
 import { Artist } from '../../artists/entities/artist.entity';
 import { BaseEntity } from '../../common/entities/base.entity';
+import type { EventLineupRequestDto } from '../dto/event-lineup-request.dto';
 import { ELineupStatus } from '../enums/lineup-status.enum';
 import { EPerformanceType } from '../enums/performance-type.enum';
-import type { ILineupItemData } from '../events.types';
 import { EventStage } from './event-stage.entity';
 import { Event } from './event.entity';
 
 @Entity({ tableName: 'event_lineup' })
-@Unique({ properties: ['event', 'artist'] })
+// Adiado até o commit: o PATCH troca a lista inteira, e o INSERT de um item novo
+// do mesmo artista pode rodar antes do DELETE do antigo
+@Unique({
+  properties: ['event', 'artist'],
+  deferMode: DeferMode.INITIALLY_DEFERRED,
+})
 export class EventLineup extends BaseEntity {
-  @ManyToOne(() => Event, { deleteRule: 'cascade' })
-  event: Rel<Event>;
-
-  @ManyToOne(() => Artist, { deleteRule: 'restrict' })
-  artist: Artist;
-
-  // RESTRICT: palco com artista no lineup não pode ser apagado
-  @ManyToOne(() => EventStage, { deleteRule: 'restrict' })
-  stage: Rel<EventStage>;
-
   @Enum({
     items: () => EPerformanceType,
     nativeEnumName: 'performance_type',
@@ -50,8 +45,19 @@ export class EventLineup extends BaseEntity {
   })
   status: Opt<ELineupStatus> = ELineupStatus.CONFIRMED;
 
-  update(stage: EventStage, data: ILineupItemData) {
-    this.stage = stage;
+  @ManyToOne(() => Event, { deleteRule: 'cascade' })
+  event: Rel<Event>;
+
+  @ManyToOne(() => Artist, { deleteRule: 'restrict' })
+  artist: Artist;
+
+  // RESTRICT: palco com artista no lineup não pode ser apagado. O Event
+  // atribui o palco, porque ele pode ter sido criado na mesma requisição
+  @ManyToOne(() => EventStage, { deleteRule: 'restrict' })
+  stage: Rel<EventStage>;
+
+  update(data: EventLineupRequestDto) {
+    this.artist = rel(Artist, data.artistId);
     this.performanceType = data.performanceType;
     this.startTime = data.startTime;
     this.endTime = data.endTime;
@@ -59,17 +65,11 @@ export class EventLineup extends BaseEntity {
     this.status = data.status;
   }
 
-  static create(
-    event: Event,
-    artist: Artist,
-    stage: EventStage,
-    data: ILineupItemData,
-  ): EventLineup {
+  static create(data: EventLineupRequestDto): EventLineup {
     const lineup = new EventLineup();
 
-    lineup.event = event;
-    lineup.artist = artist;
-    lineup.update(stage, data);
+    lineup.id = data.id;
+    lineup.update(data);
 
     return lineup;
   }

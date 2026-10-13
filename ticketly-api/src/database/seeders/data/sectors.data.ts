@@ -1,12 +1,10 @@
 import { ESectorType } from '../../../sectors/enums/sector-type.enum';
-import type {
-  ISeatBlockData,
-  ISectorData,
-} from '../../../sectors/sectors.types';
+import type { CreateSeatBlockDto } from '../../../sectors/dto/create-seat-block.dto';
+import type { CreateSectorDto } from '../../../sectors/dto/create-sector.dto';
 
 // Setor SEATED usa `blocks`; setor GENERAL_ADMISSION (pista) usa `quantity`
-export interface ISectorSeed extends ISectorData {
-  blocks: ISeatBlockData[];
+export interface ISectorSeed extends CreateSectorDto {
+  blocks: CreateSeatBlockDto[];
   quantity: number;
 }
 
@@ -43,7 +41,7 @@ function seated(
   name: string,
   priceCents: number,
   color: string,
-  blocks: ISeatBlockData[],
+  blocks: CreateSeatBlockDto[],
   options: ISectorSeedOptions = {},
 ): ISectorSeed {
   return {
@@ -68,7 +66,7 @@ function block(
   gridRowStart: number,
   gridColumnStart: number,
   isAccessible = false,
-): ISeatBlockData {
+): CreateSeatBlockDto {
   return {
     rows,
     numberStart,

@@ -9,6 +9,10 @@ export class SectorRepository extends BaseRepository<Sector> {
     );
   }
 
+  existsByEvent(eventId: string): Promise<boolean> {
+    return this.exists({ event: eventId });
+  }
+
   // Junto com o evento: quase toda ação no setor precisa saber se o evento
   // foi cancelado
   findByIdWithEvent(id: string): Promise<Sector | null> {
