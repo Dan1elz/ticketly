@@ -10,7 +10,6 @@ import type {
   IEventPayload,
   IEventUpdatePayload,
   IIndexParams,
-  TEventStatus,
 } from "@/interfaces"
 import { eventService } from "@/services"
 
@@ -104,14 +103,11 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     [remember]
   )
 
-  // A API sempre cria como rascunho; se pediu publicado, publica em seguida
+  // A API sempre cria como rascunho: publicar exige ingresso disponível, e um
+  // show novo ainda não tem setores
   const createEvent = useCallback(
-    async (data: IEventPayload, status: TEventStatus) => {
-      let event = await eventService.create(data, auth)
-
-      if (status === "PUBLISHED") {
-        event = await eventService.update(event.id, { status }, auth)
-      }
+    async (data: IEventPayload) => {
+      const event = await eventService.create(data, auth)
 
       remember([event])
       lastQueryKey.current = null

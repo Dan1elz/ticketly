@@ -5,7 +5,6 @@ import type {
   IEventPayload,
   IEventUpdatePayload,
   IIndexParams,
-  TEventStatus,
 } from "@/interfaces"
 
 export type EventsContextType = {
@@ -17,7 +16,7 @@ export type EventsContextType = {
   searchEvents: (params: IIndexParams) => Promise<void>
   reloadEvents: () => Promise<void>
   selectEvent: (id: string) => Promise<void>
-  createEvent: (data: IEventPayload, status: TEventStatus) => Promise<IEvent>
+  createEvent: (data: IEventPayload) => Promise<IEvent>
   updateEvent: (id: string, data: IEventUpdatePayload) => Promise<IEvent>
   deleteEvent: (id: string) => Promise<void>
 }

@@ -6,6 +6,8 @@ import { Artist } from './artists/entities/artist.entity';
 import { EventLineup } from './events/entities/event-lineup.entity';
 import { EventStage } from './events/entities/event-stage.entity';
 import { Event } from './events/entities/event.entity';
+import { Seat } from './sectors/entities/seat.entity';
+import { Sector } from './sectors/entities/sector.entity';
 
 // Função (e não objeto pronto) pra ler o process.env só na hora de usar:
 // no app, o ConfigModule carrega o .env depois que este arquivo é importado
@@ -16,7 +18,7 @@ export const createMikroOrmConfig = () =>
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     dbName: process.env.DB_NAME,
-    entities: [Admin, Artist, Event, EventStage, EventLineup],
+    entities: [Admin, Artist, Event, EventStage, EventLineup, Sector, Seat],
     extensions: [Migrator, SeedManager],
     migrations: {
       path: 'dist/database/migrations',

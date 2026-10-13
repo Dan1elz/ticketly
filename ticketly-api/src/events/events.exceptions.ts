@@ -16,6 +16,26 @@ export class EventCancelledException extends ConflictException {
   }
 }
 
+export class EventHasSectorsException extends ConflictException {
+  constructor() {
+    super('Evento com setores não pode ser excluído, só cancelado');
+  }
+}
+
+export class EventHasActiveSeatsException extends ConflictException {
+  constructor() {
+    super('Evento com assentos reservados ou vendidos não pode ser cancelado');
+  }
+}
+
+export class EventWithoutAvailableSeatsException extends ConflictException {
+  constructor() {
+    super(
+      'Evento precisa de ao menos um assento disponível para ser publicado',
+    );
+  }
+}
+
 export class StageNotFoundException extends BadRequestException {
   constructor() {
     super('Palco do lineup não existe no evento');

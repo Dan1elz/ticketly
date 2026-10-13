@@ -12,22 +12,27 @@ API principal do [Ticketly](../README.md). É o único serviço com banco de dad
 - **Outbox**: grava os eventos junto com o pedido e publica no RabbitMQ (`order.paid`).
 - **Fulfillment**: consome `invoice.generated` e `ticket.generated`; quando os dois chegam, baixa os PDFs do storage S3, envia o e-mail pro Mailpit e marca o pedido `COMPLETED`.
 - **Admin**: login (JWT), cadastro de shows e acompanhamento dos pedidos.
-- **Arquivos**: upload das fotos dos artistas pro storage S3 (`ticketly-public`) e URLs assinadas pra baixar NF-e/ingresso (`ticketly-documents`). Ainda não implementado — contrato e variáveis em [docs/pendencias-api.md](../docs/pendencias-api.md).
+- **Arquivos**: upload das fotos dos artistas pro storage S3 (`ticketly-public`) e URLs assinadas pra baixar NF-e/ingresso (`ticketly-documents`). O upload das fotos está pronto; o que falta está em [docs/pendencias-api.md](../docs/pendencias-api.md).
 
-## Módulos planejados
+## Módulos
 
-| Módulo | O que faz |
-|---|---|
-| `events` | Shows, palcos e lineup |
-| `sectors` | Setores e assentos (geração, bloqueio, cancelamento) |
-| `reservations` | Lock de assentos e criação do pedido |
-| `orders` | Consulta e ciclo de vida do pedido |
-| `payments` | Integração com o gateway + webhook |
-| `outbox` | Job que publica eventos pendentes |
-| `fulfillment` | Consumers dos workers + envio do e-mail |
-| `admin` | Login e rotas administrativas |
+| Módulo | O que faz | Situação |
+|---|---|---|
+| `auth` | Login do admin (JWT) e guard global: toda rota exige token, menos as `@Public()` | pronto |
+| `admins` | Cadastro dos usuários do portal admin | pronto |
+| `artists` | Artistas (foto no storage S3) | pronto |
+| `uploads` / `storage` | Upload de imagem e acesso ao storage S3 | pronto |
+| `events` | Shows, palcos e lineup | pronto |
+| `sectors` | Setores e assentos (geração por bloco ou quantidade, bloqueio, cancelamento) | pronto |
+| `reservations` | Lock de assentos e criação do pedido | a fazer |
+| `orders` | Consulta e ciclo de vida do pedido | a fazer |
+| `payments` | Integração com o gateway + webhook | a fazer |
+| `outbox` | Job que publica eventos pendentes | a fazer |
+| `fulfillment` | Consumers dos workers + envio do e-mail | a fazer |
 
-Padrão de cada módulo: `controller → service → repository`, DTOs validados com `class-validator`, erros com as exceções do Nest (`NotFoundException`, `ConflictException`...).
+Padrão de cada módulo: `controller → service → repository`, DTOs validados com `nestjs-zod` (o schema de resposta com `@ZodResponse` faz o papel do mapper), erros com as exceções do Nest (`NotFoundException`, `ConflictException`...).
+
+Rotas `GET` do catálogo (`/events`, `/events/:id/sectors`, `/sectors/:id`) são públicas: sem token (loja) só mostram shows `PUBLISHED`; com o token do admin mostram tudo.
 
 ## Eventos
 
@@ -52,7 +57,7 @@ Criar as tabelas e o primeiro admin (com o Postgres de pé):
 
 ```bash
 npm run migration:up
-npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD) + 15 artistas e 8 shows de exemplo
+npm run db:seed   # admin@ticketly.dev / Admin@123 (muda com SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD) + 15 artistas e 8 shows de exemplo, com setores e assentos
 ```
 
 - Swagger: http://localhost:3000/docs — faça login em `POST /admin/auth/login` e cole o `accessToken` em **Authorize**.
@@ -88,18 +93,20 @@ Veja o [.env.example](.env.example). As principais:
 | `npm run migration:up` | Aplica as migrations pendentes |
 | `npm run migration:down` | Desfaz a última migration |
 | `npm run migration:list` | Lista as migrations aplicadas |
-| `npm run db:seed` | Cria o primeiro admin, os artistas e os shows de exemplo (não duplica se já existirem) |
+| `npm run db:seed` | Cria o primeiro admin, os artistas, os shows de exemplo e os setores deles (não duplica se já existirem) |
 | `npm run db:seed:artists` | Só os artistas de exemplo: baixa as fotos e sobe no storage (precisa da infra rodando) |
 | `npm run db:seed:events` | Shows de exemplo com lineup (roda o de artistas antes, se faltar algum) |
+| `npm run db:seed:sectors` | Setores e assentos dos shows de exemplo (roda o de shows antes; só mexe em show sem setor) |
 
 ## Dependências por fase
 
 | Fase | Pacotes |
 |---|---|
-| Base (instalado) | `@nestjs/config`, `@nestjs/swagger`, `class-validator`, `class-transformer`, `@mikro-orm/*` |
+| Base (instalado) | `@nestjs/config`, `@nestjs/swagger`, `nestjs-zod` + `zod`, `@mikro-orm/*` |
+| Storage (instalado) | `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner` |
+| Admin (instalado) | `@nestjs/jwt`, `bcrypt` (sem passport: guard próprio) |
 | Reserva | `ioredis` |
 | Filas | `@golevelup/nestjs-rabbitmq`, `@nestjs/schedule` |
-| E-mail | `@aws-sdk/client-s3`, `nodemailer` |
-| Admin | `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt` |
+| E-mail | `nodemailer` |
 
 > Consumers do RabbitMQ com MikroORM precisam de `@CreateRequestContext()` no método, senão as mensagens compartilham o mesmo `EntityManager`.

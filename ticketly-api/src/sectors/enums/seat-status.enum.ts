@@ -1,0 +1,7 @@
+export enum ESeatStatus {
+  AVAILABLE = 'AVAILABLE',
+  RESERVED = 'RESERVED',
+  SOLD = 'SOLD',
+  BLOCKED = 'BLOCKED',
+  CANCELLED = 'CANCELLED',
+}

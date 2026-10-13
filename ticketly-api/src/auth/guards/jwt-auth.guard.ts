@@ -34,9 +34,21 @@ export class JwtAuthGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (isPublic) return true;
-
     const request = context.switchToHttp().getRequest<IAuthenticatedRequest>();
+
+    // Rota pública: entra com ou sem token. Se veio um token válido (admin
+    // logado no painel), identifica o admin, e a rota pode mostrar mais coisa
+    // (ex: rascunhos). Token inválido aqui só vira cliente anônimo
+    if (isPublic) {
+      await this.authenticate(request).catch(() => undefined);
+      return true;
+    }
+
+    await this.authenticate(request);
+    return true;
+  }
+
+  private async authenticate(request: IAuthenticatedRequest): Promise<void> {
     const token = this.extractToken(request);
 
     if (!token) {
@@ -58,7 +70,6 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     request.admin = admin;
-    return true;
   }
 
   private extractToken(request: IAuthenticatedRequest): string | undefined {

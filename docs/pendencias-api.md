@@ -13,5 +13,6 @@ O fluxo básico está pronto: `POST /uploads/artist-image` sobe a foto, `POST/PA
 
 ## 2. Outras observações
 
-- **`GET /events` é público e devolve rascunhos.** A loja vai precisar listar só `PUBLISHED` (filtro forçado nas rotas públicas, ou rotas públicas separadas das do admin).
-- **`POST /events` não aceita `status`.** Quando o admin cria um show já como "Publicado", o front faz `POST` e depois `PATCH { status }`. Se a API passar a aceitar `status` no create, dá pra fazer numa requisição só.
+- **Assentos na loja.** `GET /events/:eventId/sectors` é público (setores + contagem por status), mas `GET /sectors/:sectorId/seats` é só admin, porque devolve a observação e quem bloqueou. A grade da loja vai precisar de uma rota pública só com posição e status.
+- **Front ainda não manda `stages`.** O formulário de show do `ticketly-web` envia o palco como texto em cada item do lineup e não envia a lista `stages`, que a API exige desde a entidade `event_stages`: criar/editar show pelo painel hoje volta 400.
+- **Telas de setores e assentos no admin.** A API está pronta (`/events/:id/sectors`, `/sectors/:id/seats/grid`, `/seats/:id/block`...), o front ainda não usa. Sem elas, show criado pelo painel não consegue ser publicado (publicar exige ingresso disponível).

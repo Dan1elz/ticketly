@@ -49,6 +49,10 @@ export class Event extends BaseEntity {
     return this.status === EEventStatus.CANCELLED;
   }
 
+  get isPublished(): boolean {
+    return this.status === EEventStatus.PUBLISHED;
+  }
+
   cancel() {
     this.status = EEventStatus.CANCELLED;
   }

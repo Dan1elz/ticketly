@@ -200,7 +200,7 @@ function EventForm({ event }: { event: IEvent | null }) {
         await updateEvent(event.id, formToEventUpdatePayload(data))
         handleSuccess("Show atualizado")
       } else {
-        await createEvent(formToEventPayload(data), data.status)
+        await createEvent(formToEventPayload(data))
         handleSuccess("Show criado")
       }
 
@@ -372,36 +372,44 @@ function EventForm({ event }: { event: IEvent | null }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
-              <Field>
-                <FieldLabel htmlFor="event-status">Status</FieldLabel>
-                <Controller
-                  control={control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select
-                      items={EVENT_STATUS_LABELS}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <SelectTrigger id="event-status" className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent alignItemWithTrigger={false}>
-                        {Object.entries(EVENT_STATUS_LABELS).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          )
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <FieldDescription>
-                  Rascunho fica visível só aqui no painel.
-                </FieldDescription>
-              </Field>
+              {event ? (
+                <Field>
+                  <FieldLabel htmlFor="event-status">Status</FieldLabel>
+                  <Controller
+                    control={control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select
+                        items={EVENT_STATUS_LABELS}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger id="event-status" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent alignItemWithTrigger={false}>
+                          {Object.entries(EVENT_STATUS_LABELS).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <FieldDescription>
+                    Rascunho fica visível só aqui no painel. Para publicar, o
+                    show precisa de ao menos um ingresso disponível.
+                  </FieldDescription>
+                </Field>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  O show é criado como rascunho. Depois de cadastrar os setores
+                  e ingressos, publique pela edição.
+                </p>
+              )}
 
               <Separator />
               <EventSummary control={control} />

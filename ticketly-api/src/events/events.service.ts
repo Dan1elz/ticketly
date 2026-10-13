@@ -8,15 +8,20 @@ import {
 import { ArtistsService } from '../artists/artists.service';
 import { Artist } from '../artists/entities/artist.entity';
 import type { IPaginated } from '../common/repositories/base.repository';
+import { SectorsService } from '../sectors/sectors.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import type { LineupItemDto } from './dto/lineup-item.dto';
 import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { EEventStatus } from './enums/event-status.enum';
 import type { ILineupEntry } from './events.types';
 import { Event } from './entities/event.entity';
 import {
   EventCancelledException,
+  EventHasActiveSeatsException,
+  EventHasSectorsException,
   EventNotFoundException,
+  EventWithoutAvailableSeatsException,
   StageInUseException,
   StageNotFoundException,
 } from './events.exceptions';
@@ -28,6 +33,7 @@ export class EventsService {
     @InjectRepository(Event)
     private readonly eventRepository: EventRepository,
     private readonly artistsService: ArtistsService,
+    private readonly sectorsService: SectorsService,
   ) {}
 
   // Evento, artistas novos e lineup vão no mesmo flush = mesma transação:
@@ -56,6 +62,25 @@ export class EventsService {
     return event;
   }
 
+  // Loja (sem login): só shows publicados, qualquer que seja o filtro pedido
+  findAllPublished(query: ListEventsQueryDto): Promise<IPaginated<Event>> {
+    return this.eventRepository.search({
+      ...query,
+      status: EEventStatus.PUBLISHED,
+    });
+  }
+
+  // Loja: rascunho e cancelado respondem 404, como se não existissem
+  async findPublished(id: string): Promise<Event> {
+    const event = await this.findOne(id);
+
+    if (!event.isPublished) {
+      throw new EventNotFoundException();
+    }
+
+    return event;
+  }
+
   async update(id: string, dto: UpdateEventDto): Promise<Event> {
     const event = await this.findOne(id);
 
@@ -64,6 +89,10 @@ export class EventsService {
     }
 
     this.ensureStagesMatchLineup(event, dto);
+
+    if (dto.status === EEventStatus.PUBLISHED && !event.isPublished) {
+      await this.ensureHasAvailableSeats(event.id);
+    }
 
     const currentArtistIds = new Set(
       event.lineup.getItems().map((item) => item.artist.id),
@@ -79,12 +108,19 @@ export class EventsService {
     return event;
   }
 
-  // TODO (setores): recusar (409) se houver assento SOLD ou RESERVED
+  // Com assento vendido ou reservado não cancela: alguém pagou (ou está
+  // pagando). Na prática: volta pra DRAFT, espera as reservas expirarem e cancela
   async cancel(id: string): Promise<Event> {
     const event = await this.findOne(id);
 
     if (event.isCancelled) {
       throw new EventCancelledException();
+    }
+
+    const seats = await this.sectorsService.countSeatsByEvent(event.id);
+
+    if (seats.SOLD > 0 || seats.RESERVED > 0) {
+      throw new EventHasActiveSeatsException();
     }
 
     event.cancel();
@@ -93,12 +129,26 @@ export class EventsService {
     return event;
   }
 
-  // TODO (setores): evento com setores não é excluído, só cancelado (409)
+  // Evento com setores não é excluído, só cancelado: setor leva a assento, e
+  // assento nunca some (é histórico dos pedidos)
   async remove(id: string): Promise<void> {
     const event = await this.findOne(id);
 
+    if (await this.sectorsService.hasSectors(event.id)) {
+      throw new EventHasSectorsException();
+    }
+
     this.eventRepository.remove(event);
     await this.eventRepository.saveChanges();
+  }
+
+  // Publicar = aparecer na loja: precisa ter pelo menos um ingresso à venda
+  private async ensureHasAvailableSeats(eventId: string) {
+    const seats = await this.sectorsService.countSeatsByEvent(eventId);
+
+    if (seats.AVAILABLE === 0) {
+      throw new EventWithoutAvailableSeatsException();
+    }
   }
 
   // Com as duas listas no PATCH, o DTO já conferiu. Com só uma, a outra vem do

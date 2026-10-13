@@ -27,13 +27,20 @@ import { ListEventsQueryDto } from './dto/list-events-query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import {
   EventCancelledException,
+  EventHasActiveSeatsException,
+  EventHasSectorsException,
   EventNotFoundException,
+  EventWithoutAvailableSeatsException,
   StageInUseException,
   StageNotFoundException,
 } from './events.exceptions';
 import { EventsService } from './events.service';
 import { Public } from '../auth/decorators/public.decorator';
+import { CurrentAdmin } from '../auth/decorators/current-admin.decorator';
+import { Admin } from '../admins/entities/admin.entity';
 
+// GET são públicos: sem token (loja) só aparecem shows publicados; com o token
+// do admin (painel) aparece tudo, inclusive rascunho e cancelado
 @ApiTags('events')
 @ApiBearerAuth()
 @ApiErrors(...AUTH_GUARD_ERRORS)
@@ -57,16 +64,26 @@ export class EventsController {
   @ZodResponse({ status: HttpStatus.OK, type: EventListResponseDto })
   @Public()
   @ApiErrors(HttpStatus.BAD_REQUEST)
-  findAll(@Query() query: ListEventsQueryDto) {
-    return this.eventsService.findAll(query);
+  findAll(
+    @Query() query: ListEventsQueryDto,
+    @CurrentAdmin() admin: Admin | undefined,
+  ) {
+    return admin
+      ? this.eventsService.findAll(query)
+      : this.eventsService.findAllPublished(query);
   }
 
   @Get(':id')
   @ZodResponse({ status: HttpStatus.OK, type: EventResponseDto })
   @Public()
   @ApiErrors(HttpStatus.BAD_REQUEST, EventNotFoundException)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.eventsService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentAdmin() admin: Admin | undefined,
+  ) {
+    return admin
+      ? this.eventsService.findOne(id)
+      : this.eventsService.findPublished(id);
   }
 
   @Patch(':id')
@@ -75,6 +92,7 @@ export class EventsController {
     HttpStatus.BAD_REQUEST,
     EventNotFoundException,
     EventCancelledException,
+    EventWithoutAvailableSeatsException,
     StageNotFoundException,
     StageInUseException,
     ArtistNotFoundException,
@@ -92,6 +110,7 @@ export class EventsController {
     HttpStatus.BAD_REQUEST,
     EventNotFoundException,
     EventCancelledException,
+    EventHasActiveSeatsException,
   )
   cancel(@Param('id', ParseUUIDPipe) id: string) {
     return this.eventsService.cancel(id);
@@ -100,7 +119,11 @@ export class EventsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiNoContentResponse()
-  @ApiErrors(HttpStatus.BAD_REQUEST, EventNotFoundException)
+  @ApiErrors(
+    HttpStatus.BAD_REQUEST,
+    EventNotFoundException,
+    EventHasSectorsException,
+  )
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.eventsService.remove(id);
   }
