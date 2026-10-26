@@ -49,11 +49,13 @@ Formato em [docs/eventos.md](../docs/eventos.md). Modelo do banco em [docs/arqui
 ```bash
 cp .env.example .env
 docker network create ticketly-net   # só na primeira vez
+docker network create proxy-net      # só na primeira vez (rede do proxy de borda)
 docker compose -f compose.development.yaml up -d
 ```
 
-- API: http://localhost:3000
-- Postgres: `localhost:5433` (usuário, senha e banco no `.env`)
+- API: http://localhost:3000 (na VM: https://ticketly-api.zanni.tech, pelo proxy de borda)
+- Postgres: `localhost:5433` (usuário, senha e banco no `.env`; na VM só por túnel SSH)
+- Saúde: `GET /health` → 200 se a API alcança o banco, 503 se não (usado pelo `HEALTHCHECK`)
 
 Criar as tabelas e o primeiro admin (com o Postgres de pé):
 
@@ -86,8 +88,11 @@ Veja o [.env.example](.env.example). As principais:
 |---|---|
 | `POSTGRES_*` | Criação do banco no container |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | Conexão da API com o banco (no Docker o compose troca para `postgres:5432`) |
-| `API_PORT` | Porta exposta da API |
-| `WEB_URL` | Origem do front liberada no CORS |
+| `API_PORT` | Porta da API no `127.0.0.1` (só dev) |
+| `WEB_URL` | Origem(ns) do front liberada(s) no CORS, separadas por vírgula. Na VM: `https://ticketly.zanni.tech` |
+| `S3_PUBLIC_URL` | Endereço do storage que o navegador usa (URLs públicas e assinadas). Na VM: `https://ticketly-s3.zanni.tech` |
+| `HOST_UID` / `HOST_GID` | Usuário do container de dev = dono da pasta no host (1000 no WSL, 1001 na VM) |
+| `SWAGGER_ENABLED` | `/docs` fica ligado fora de produção; em staging só com `true` |
 
 ## Scripts
 

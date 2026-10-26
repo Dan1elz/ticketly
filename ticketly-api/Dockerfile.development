@@ -5,9 +5,16 @@ WORKDIR /app
 ENV NODE_ENV=development \
     PORT=3000
 
-# Roda como o usuário 'node' (uid 1000, o mesmo do seu usuário no WSL).
-# Como root, o dist/ que o --watch gera na pasta montada ficaria com dono root no seu PC
-RUN chown node:node /app
+# Roda como o usuário 'node' com o MESMO uid/gid do dono da pasta no host
+# (1000 no WSL, 1001 na VM; vem do compose). Como root, o dist/ que o --watch gera na
+# pasta montada ficaria com dono root; com outro uid, o --watch nem consegue gravar
+ARG UID=1000
+ARG GID=1000
+RUN apk add --no-cache shadow \
+    && groupmod -o -g "$GID" node \
+    && usermod -o -u "$UID" -g "$GID" node \
+    && chown -R node:node /app /home/node \
+    && apk del shadow
 USER node
 
 # Cache layer: instalar dependências antes de copiar o código
@@ -17,10 +24,9 @@ RUN npm install
 
 EXPOSE 3000
 
-# Por enquanto só confere se a porta 3000 está aberta.
-# TODO: trocar por uma rota GET /health quando ela existir
+# GET /health responde 200 só se a API está no ar E alcança o banco
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=5 \
-    CMD nc -z 127.0.0.1 3000 || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1
 
 # O código vem pelo volume do compose; o --watch recompila a cada alteração
 CMD ["npm", "run", "start:dev"]

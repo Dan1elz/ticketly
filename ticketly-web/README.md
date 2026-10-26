@@ -63,10 +63,11 @@ src/
 ```bash
 cp .env.example .env
 docker network create ticketly-net   # só na primeira vez
+docker network create proxy-net      # só na primeira vez (rede do proxy de borda)
 docker compose -f compose.development.yaml up -d
 ```
 
-Front em http://localhost:5173.
+Front em http://localhost:5173 (na VM: https://ticketly.zanni.tech, pelo proxy de borda).
 
 Sem Docker:
 
@@ -80,9 +81,11 @@ npm run dev
 | Variável        | Para quê                                                                                                                          |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `VITE_API_URL`  | URL da API. Quem chama é o navegador, então precisa ser um endereço acessível de fora do Docker (`http://localhost:3000` no dev). |
-| `FRONTEND_PORT` | Porta do nginx no staging.                                                                                                        |
+| `ALLOWED_HOSTS` | Só dev: hostnames extras aceitos pelo Vite, separados por vírgula (sem isso, 403 "host not allowed" pelo proxy). Na VM: `ticketly.zanni.tech`. |
 
-No staging o `VITE_API_URL` entra na hora do **build** (é embutido no JavaScript), não na hora de rodar.
+No staging o `VITE_API_URL` entra na hora do **build** (é embutido no JavaScript), não na hora de rodar: mudou, reconstrua a imagem (`up -d --build`). Página `https` só pode chamar API `https` (na VM: `https://ticketly-api.zanni.tech`).
+
+No staging o container não publica porta: o proxy de borda alcança o alias `ticketly-web` na `proxy-net`.
 
 ## Scripts
 

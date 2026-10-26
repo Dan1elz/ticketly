@@ -272,6 +272,25 @@ Regras importantes:
 
 Tudo isso sobe pelo [`ticketly-infra`](../ticketly-infra). O Postgres não está aqui: ele é da API.
 
+### Proxy de borda (VM)
+
+Na VM, o navegador nunca fala direto com os containers. O projeto `~/projects/nginx` é o único dono das portas 80/443: termina o HTTPS com o certificado `*.zanni.tech` e repassa cada hostname, em HTTP puro, para o alias certo na rede `proxy-net`.
+
+```mermaid
+flowchart LR
+    B[Navegador] -->|HTTPS| CF[Cloudflare]
+    CF -->|HTTPS :443| NG[nginx de borda]
+    NG -->|proxy-net| WEB[ticketly-web-dev:5173]
+    NG -->|proxy-net| API[ticketly-api-dev:3000]
+    NG -->|proxy-net| S3[ticketly-s3-dev:9000]
+    API -->|ticketly-net| PG[(Postgres)]
+    API -->|ticketly-net, http://storage:9000| S3
+```
+
+- A comunicação **interna** não passa pelo proxy: a API fala com `http://storage:9000` e com o Postgres pela `ticketly-net`, e o `ticketly-pay` vai chamar o webhook em `http://api:3000`.
+- O storage tem subdomínio próprio porque a URL assinada inclui host e caminho: o proxy repassa os dois intactos, e `S3_PUBLIC_URL` precisa ser exatamente `https://ticketly-s3.zanni.tech`.
+- Banco, Redis e RabbitMQ nunca entram na `proxy-net`.
+
 ### Buckets
 
 | Bucket | Acesso | Prefixos |

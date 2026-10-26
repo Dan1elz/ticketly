@@ -10,8 +10,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ticketly_password}
       POSTGRES_DB: ${POSTGRES_DB:-ticketly_db}
       TZ: ${DB_TIMEZONE:-America/Sao_Paulo}
+    # Só em 127.0.0.1: no PC o DBeaver acha em localhost; na VM ninguém de fora alcança (use túnel SSH)
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - ticketly_postgres_data_dev:/var/lib/postgresql/data
     networks:
@@ -27,6 +28,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.development
+      args:
+        # Mesmo usuário do dono da pasta no host, senão o --watch não consegue gravar o dist/.
+        # No WSL é 1000; na VM é 1001 (defina HOST_UID/HOST_GID no .env)
+        UID: ${HOST_UID:-1000}
+        GID: ${HOST_GID:-1000}
     volumes:
       - .:/app
       # Volume anônimo: impede que o node_modules do host sobrescreva o do container
@@ -39,10 +45,14 @@ services:
       DB_PORT: 5432
       # Storage (S3) sobe pelo compose do ticketly-infra; acha pelo nome do serviço na ticketly-net
       S3_ENDPOINT_URL: http://storage:9000
+    # Só em 127.0.0.1. O acesso de fora (na VM) é pelo proxy de borda: ticketly-api.zanni.tech
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "127.0.0.1:${API_PORT:-3000}:3000"
     networks:
-      - ticketly-net
+      ticketly-net:
+      # Rede do proxy de borda (~/projects/nginx). Alias único: o nginx usa ticketly-api-dev:3000
+      proxy-net:
+        aliases: [ticketly-api-dev]
     restart: unless-stopped
     depends_on:
       postgres:
@@ -50,6 +60,8 @@ services:
 
 networks:
   ticketly-net:
+    external: true
+  proxy-net:
     external: true
 
 volumes:

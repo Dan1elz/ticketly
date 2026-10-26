@@ -20,7 +20,7 @@ ticketly/
   ticketly-pay       gateway de pagamento fake (simula o Asaas) — a fazer
 ```
 
-Padrão Docker de cada projeto: `Dockerfile` + `Dockerfile.Development` (se necessário), `compose.development.yaml` e `compose.staging.yaml` na pasta de cada um (cada projeto se auto-gerencia). Composes separados se enxergam por uma rede Docker externa `ticketly-net`.
+Padrão Docker de cada projeto: `Dockerfile` + `Dockerfile.Development` (se necessário), `compose.development.yaml` e `compose.staging.yaml` na pasta de cada um (cada projeto se auto-gerencia). Composes separados se enxergam por uma rede Docker externa `ticketly-net`. Serviço **público** (web, api, storage) também entra na rede externa `proxy-net` do proxy de borda da VM (`~/projects/nginx`) com **alias único** `ticketly-<servico>-dev` (dev) ou `ticketly-<servico>` (staging), em vez de publicar porta: no dev `ports` só em `127.0.0.1`, no staging sem `ports`. Serviço privado (postgres, redis, rabbitmq) nunca entra na `proxy-net`. URL que o navegador usa é sempre `https://<hostname>` sem porta.
 
 Workers Python e o front (`ticketly-web`): "full IA" — pode escrever por ele, completo e caprichado (front sempre com componentes shadcn oficiais — nada de elemento nativo tipo `<datalist>`). No front, página/componente nunca chama service: Provider (estado + ações) → Context → hook `useX`, mesmo padrão do `aura-front`. O foco do projeto é backend: a API Nest ele quer aprender, então explique enquanto faz.
 

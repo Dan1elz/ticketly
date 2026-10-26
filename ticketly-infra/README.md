@@ -16,7 +16,7 @@ O Postgres **não** fica aqui: ele é dado da API e está no [`ticketly-api`](..
 | `redis` | Lock de assento, idempotência, cache de etapas | api, fiscal, voucher | A fazer |
 | `mailpit` | Caixa de e-mail falsa | api | A fazer |
 
-Os outros serviços acham cada um pelo **nome do serviço** na rede `ticketly-net` (ex.: `http://storage:9000`).
+Os outros serviços acham cada um pelo **nome do serviço** na rede `ticketly-net` (ex.: `http://storage:9000`). O `storage` também entra na `proxy-net` com o alias `ticketly-s3-dev`: é por ali que o proxy de borda da VM entrega `https://ticketly-s3.zanni.tech` (fotos públicas e URLs assinadas). Quando entrarem RabbitMQ, Redis e Mailpit, **nunca** publicar AMQP (5672), Redis (6379) nem SMTP (1025); telas administrativas só com hostname próprio e autenticação, ou por túnel SSH.
 
 ## Storage S3 (Silo)
 
@@ -47,6 +47,7 @@ O script é idempotente: pode rodar quantas vezes quiser (`mc mb --ignore-existi
 ```bash
 cp .env.example .env
 docker network create ticketly-net   # só na primeira vez
+docker network create proxy-net      # só na primeira vez (rede do proxy de borda)
 docker compose -f compose.development.yaml up -d
 ```
 
@@ -54,6 +55,8 @@ docker compose -f compose.development.yaml up -d
 |---|---|
 | Storage S3 (API) | http://localhost:9000 |
 | Storage (painel web) | http://localhost:9001 — login com `STORAGE_ROOT_USER` / `STORAGE_ROOT_PASSWORD` |
+
+As portas ficam só em `127.0.0.1` (`STORAGE_PORT`, `STORAGE_CONSOLE_PORT`). Na VM: a API S3 é https://ticketly-s3.zanni.tech e o painel só por túnel SSH (`ssh -L 9001:127.0.0.1:9001 pessoal`).
 
 Pra conferir:
 
