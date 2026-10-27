@@ -34,16 +34,19 @@ services:
       DB_PORT: 5432
       # Storage (S3) sobe pelo compose do ticketly-infra; acha pelo nome do serviço na ticketly-net
       S3_ENDPOINT_URL: http://storage:9000
-    ports:
-      - "${API_PORT:-3000}:3000"
+    # Sem "ports": quem recebe de fora é o proxy de borda (ticketly-api.zanni.tech)
     networks:
-      - ticketly-net
+      ticketly-net:
+      proxy-net:
+        aliases: [ticketly-api]
     depends_on:
       postgres:
         condition: service_healthy
 
 networks:
   ticketly-net:
+    external: true
+  proxy-net:
     external: true
 
 volumes:

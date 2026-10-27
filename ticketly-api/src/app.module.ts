@@ -9,6 +9,7 @@ import { ArtistsModule } from './artists/artists.module';
 import { AuthModule } from './auth/auth.module';
 import { ZodValidationPipe } from './common/zod/zod-validation.pipe';
 import { EventsModule } from './events/events.module';
+import { HealthModule } from './health/health.module';
 import { createMikroOrmConfig } from './mikro-orm.config';
 import { StorageModule } from './storage/storage.module';
 import { UploadsModule } from './uploads/uploads.module';
@@ -24,6 +25,7 @@ import { UploadsModule } from './uploads/uploads.module';
     AdminsModule,
     ArtistsModule,
     EventsModule,
+    HealthModule,
     StorageModule,
     UploadsModule,
   ],

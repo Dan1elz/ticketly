@@ -11,12 +11,19 @@ services:
       - /app/node_modules
     env_file:
       - .env
+    # Só em 127.0.0.1: no PC abre em localhost:5173; na VM o acesso de fora é pelo
+    # proxy de borda (ticketly.zanni.tech), que fala com o Vite pela proxy-net
     ports:
-      - 5173:5173
+      - "127.0.0.1:5173:5173"
     networks:
-      - ticketly-net
+      ticketly-net:
+      # Alias único: o nginx usa ticketly-web-dev:5173
+      proxy-net:
+        aliases: [ticketly-web-dev]
     restart: unless-stopped
 
 networks:
   ticketly-net:
+    external: true
+  proxy-net:
     external: true

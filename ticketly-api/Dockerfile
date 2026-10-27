@@ -35,10 +35,9 @@ USER node
 
 EXPOSE 3000
 
-# Healthcheck (nc já vem no alpine). Por enquanto só confere se a porta 3000 está aberta.
-# TODO: trocar por uma rota GET /health quando ela existir
+# GET /health responde 200 só se a API está no ar E alcança o banco (wget vem no alpine)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD nc -z 127.0.0.1 3000 || exit 1
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/health || exit 1
 
 # Aplica as migrations (e cria o primeiro admin, se não existir) antes de subir a API.
 # O exec faz a API virar o processo principal e receber o sinal de parada do Docker

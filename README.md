@@ -59,10 +59,11 @@ Cada repositório se gerencia sozinho: tem seu próprio `Dockerfile`, `Dockerfil
 
 ## Como rodar (desenvolvimento)
 
-Todos os serviços se enxergam pela rede Docker `ticketly-net`. Crie uma vez:
+Todos os serviços se enxergam pela rede Docker `ticketly-net`. Os públicos (front, API, storage) também entram na `proxy-net`, a rede do [proxy de borda](#na-vm-proxy-de-borda). Crie as duas uma vez:
 
 ```bash
 docker network create ticketly-net
+docker network create proxy-net
 ```
 
 Depois suba cada parte, **nessa ordem**, a partir da pasta de cada uma:
@@ -84,6 +85,21 @@ docker compose -f compose.development.yaml up -d
 | Postgres | `localhost:5433` |
 | Storage S3 (API) | http://localhost:9000 |
 | Storage (painel web) | http://localhost:9001 |
+
+As portas ficam só em `127.0.0.1`: abrem no seu PC e não são alcançáveis de fora.
+
+### Na VM: proxy de borda
+
+Na VM pessoal quem recebe o tráfego (80/443, HTTPS) é o projeto `~/projects/nginx`, e cada serviço público é achado pelo **alias** na `proxy-net`. Nenhum serviço do Ticketly publica porta para fora nem carrega certificado.
+
+| Serviço | Endereço | Alias na `proxy-net` |
+|---|---|---|
+| Front | https://ticketly.zanni.tech | `ticketly-web-dev` (Vite, 5173) |
+| API | https://ticketly-api.zanni.tech (Swagger em `/docs`) | `ticketly-api-dev` (3000) |
+| Storage S3 | https://ticketly-s3.zanni.tech | `ticketly-s3-dev` (9000) |
+| Postgres, painel do storage | só por túnel SSH (`ssh -L 5433:127.0.0.1:5433 pessoal`) | — |
+
+Hoje só existe o ambiente de dev na VM; os aliases já têm o sufixo `-dev` para o staging poder usar o nome sem sufixo depois. Os `.env` da VM usam esses endereços `https` (`WEB_URL`, `S3_PUBLIC_URL`, `VITE_API_URL`, `ALLOWED_HOSTS`).
 
 ## Roadmap
 
